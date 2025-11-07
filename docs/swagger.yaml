@@ -17,6 +17,20 @@ definitions:
       time.Time:
         type: string
     type: object
+  models.GuestRecord:
+    properties:
+      content:
+        type: string
+      created_at:
+        $ref: '#/definitions/models.CustomTime'
+      entry_time:
+        $ref: '#/definitions/models.CustomTime'
+      id:
+        type: integer
+    required:
+    - content
+    - entry_time
+    type: object
   models.User:
     properties:
       birthday:
@@ -32,6 +46,8 @@ definitions:
     type: object
   models.VisitLog:
     properties:
+      content:
+        type: string
       created_at:
         $ref: '#/definitions/models.CustomTime'
       id:
@@ -50,6 +66,33 @@ info:
   title: My Blog API
   version: "1.0"
 paths:
+  /guest:
+    post:
+      consumes:
+      - application/json
+      description: 记录访客进入网站的时间和内容信息
+      parameters:
+      - description: 访客记录信息
+        in: body
+        name: record
+        required: true
+        schema:
+          $ref: '#/definitions/models.GuestRecord'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.GuestRecord'
+              type: object
+      summary: 记录访客进入信息
+      tags:
+      - guest
   /login:
     post:
       consumes:
@@ -163,7 +206,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 记录一次新的用户访问。用户昵称是可选的，访问时间是必传的。
+      description: 记录一次新的用户访问。用户昵称是可选的，访问时间是必传的，内容是可选的。
       parameters:
       - description: 访问信息
         in: body

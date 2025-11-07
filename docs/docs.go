@@ -15,6 +15,52 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/guest": {
+            "post": {
+                "description": "记录访客进入网站的时间和内容信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "guest"
+                ],
+                "summary": "记录访客进入信息",
+                "parameters": [
+                    {
+                        "description": "访客记录信息",
+                        "name": "record",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.GuestRecord"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.GuestRecord"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "验证用户身份并返回一个 JWT 令牌。",
@@ -189,7 +235,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "记录一次新的用户访问。用户昵称是可选的，访问时间是必传的。",
+                "description": "记录一次新的用户访问。用户昵称是可选的，访问时间是必传的，内容是可选的。",
                 "consumes": [
                     "application/json"
                 ],
@@ -261,6 +307,27 @@ const docTemplate = `{
                 }
             }
         },
+        "models.GuestRecord": {
+            "type": "object",
+            "required": [
+                "content",
+                "entry_time"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "$ref": "#/definitions/models.CustomTime"
+                },
+                "entry_time": {
+                    "$ref": "#/definitions/models.CustomTime"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.User": {
             "type": "object",
             "properties": {
@@ -287,6 +354,9 @@ const docTemplate = `{
                 "visit_time"
             ],
             "properties": {
+                "content": {
+                    "type": "string"
+                },
                 "created_at": {
                     "$ref": "#/definitions/models.CustomTime"
                 },
