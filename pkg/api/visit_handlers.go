@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"myblog_last_new/pkg/models"
 	"net/http"
 	"strconv"
@@ -66,6 +67,9 @@ func LogVisit(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		json.NewEncoder(w).Encode(response)
 		return
 	}
+
+	// 清理旧数据，只保留最新的20条
+	go cleanupOldVisitLogs(db, 20)
 
 	id, _ := result.LastInsertId()
 	visit.ID = int(id)
@@ -217,4 +221,41 @@ func LogGuestRecord(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
+}
+
+// cleanupOldVisitLogs 清理旧的访问日志，只保留指定数量的最新记录
+func cleanupOldVisitLogs(db *sql.DB, keepCount int) {
+	// 获取当前记录总数
+	var totalCount int
+	err := db.QueryRow("SELECT COUNT(*) FROM visit_logs").Scan(&totalCount)
+	if err != nil {
+		fmt.Printf("Failed to count visit logs: %v\n", err)
+		return
+	}
+
+	// 如果记录数超过要保留的数量，删除旧记录
+	if totalCount > keepCount {
+		// 使用子查询获取要保留的最新记录的最小ID
+		deleteQuery := `
+			DELETE FROM visit_logs 
+			WHERE id < (
+				SELECT min_id FROM (
+					SELECT MIN(id) as min_id FROM (
+						SELECT id FROM visit_logs 
+						ORDER BY created_at DESC 
+						LIMIT ?
+					) as keep_records
+				) as temp
+			)
+		`
+		
+		result, err := db.Exec(deleteQuery, keepCount)
+		if err != nil {
+			fmt.Printf("Failed to delete old visit logs: %v\n", err)
+			return
+		}
+		
+		affected, _ := result.RowsAffected()
+		fmt.Printf("Cleaned up %d old visit log records, keeping latest %d\n", affected, keepCount)
+	}
 }

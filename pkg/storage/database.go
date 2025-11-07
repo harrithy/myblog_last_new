@@ -78,6 +78,22 @@ func InitDB(db *sql.DB) error {
 		return err
 	}
 
+	// Create owner_visit_logs table if it does not exist
+	ownerVisitQuery := `
+	CREATE TABLE IF NOT EXISTS owner_visit_logs (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		visit_date DATE NOT NULL,
+		visit_count INT DEFAULT 1,
+		last_visit_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE KEY unique_date (visit_date)
+	);`
+
+	_, err = db.Exec(ownerVisitQuery)
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("数据库表初始化成功!")
 	return nil
 }

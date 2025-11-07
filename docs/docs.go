@@ -116,6 +116,102 @@ const docTemplate = `{
                 }
             }
         },
+        "/owner/today-visits": {
+            "get": {
+                "description": "获取博客主人今天的访问次数统计",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "owner"
+                ],
+                "summary": "获取博客主人今日访问次数",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/owner/visits": {
+            "get": {
+                "description": "获取博客主人指定天数内每天访问次数的统计信息，包含访问日期、访问次数和最后访问时间",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "owner"
+                ],
+                "summary": "获取博客主人访问统计",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "获取最近多少天的数据，默认7天，最大365天",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "description": "获取所有已注册用户的列表。",
@@ -331,10 +427,10 @@ const docTemplate = `{
         "models.User": {
             "type": "object",
             "properties": {
-                "birthday": {
+                "account": {
                     "type": "string"
                 },
-                "email": {
+                "birthday": {
                     "type": "string"
                 },
                 "id": {
@@ -344,6 +440,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "nickname": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }

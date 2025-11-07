@@ -28,7 +28,7 @@ func GetUsers(w http.ResponseWriter, _ *http.Request, db *sql.DB) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Name, &u.Email); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.Account); err != nil {
 			http.Error(w, "Data parse failed: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -66,7 +66,7 @@ func AddUser(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(u.Name, u.Email, u.Nickname, u.Birthday)
+	_, err = stmt.Exec(u.Name, u.Account, u.Nickname, u.Birthday)
 	if err != nil {
 		http.Error(w, "Failed to execute statement: "+err.Error(), http.StatusInternalServerError)
 		return

@@ -3,9 +3,11 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"myblog_last_new/pkg/auth"
 	"myblog_last_new/pkg/models"
 	"net/http"
+	"time"
 )
 
 // Login godoc
@@ -24,29 +26,83 @@ func Login(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	var creds models.User
 	err := json.NewDecoder(r.Body).Decode(&creds)
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		response := models.ErrorResponse(400, "Invalid request body")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
+	// 检查是否是博客主人登录
+	isOwner := creds.Account == "harrio" && creds.Password == "525300@ycr"
+	
 	var user models.User
-	err = db.QueryRow("SELECT id, name, email FROM users WHERE email = ?", creds.Email).Scan(&user.ID, &user.Name, &user.Email)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "User not found", http.StatusUnauthorized)
+	if isOwner {
+		// 博客主人登录，使用特殊处理
+		user = models.User{
+			ID:      0,
+			Name:    "harrio",
+			Account: "harrio",
+		}
+		
+		// 记录博客主人访问
+		go recordOwnerVisit(db)
+	} else {
+		// 普通用户登录验证
+		err = db.QueryRow("SELECT id, name, email FROM users WHERE email = ?", creds.Account).Scan(&user.ID, &user.Name, &user.Account)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				response := models.ErrorResponse(401, "User not found")
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnauthorized)
+				json.NewEncoder(w).Encode(response)
+				return
+			}
+			response := models.ErrorResponse(500, "Query failed: "+err.Error())
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
-		http.Error(w, "Query failed: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
-	tokenString, err := auth.GenerateJWT(user.Email)
+	tokenString, err := auth.GenerateJWT(user.Account)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		response := models.ErrorResponse(500, "Failed to generate token")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	responseData := map[string]interface{}{
 		"token": tokenString,
-	})
+		"user":  user,
+	}
+	if isOwner {
+		responseData["is_owner"] = true
+	}
+
+	response := models.SuccessResponse(responseData)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// recordOwnerVisit records owner visit to database
+func recordOwnerVisit(db *sql.DB) {
+	today := time.Now().Format("2006-01-02")
+	
+	// 使用 INSERT ... ON DUPLICATE KEY UPDATE 来更新或插入访问记录
+	query := `
+		INSERT INTO owner_visit_logs (visit_date, visit_count) 
+		VALUES (?, 1)
+		ON DUPLICATE KEY UPDATE 
+		visit_count = visit_count + 1,
+		last_visit_time = CURRENT_TIMESTAMP
+	`
+	
+	_, err := db.Exec(query, today)
+	if err != nil {
+		fmt.Printf("Failed to record owner visit: %v\n", err)
+	}
 }

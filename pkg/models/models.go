@@ -4,9 +4,10 @@ package models
 type User struct {
 	ID       int    `json:"id"`
 	Name     string `json:"name"`
-	Email    string `json:"email"`
+	Account  string `json:"account"`
 	Nickname string `json:"nickname"`
 	Birthday string `json:"birthday"`
+	Password string `json:"password,omitempty"`
 }
 
 // APIResponse defines the standard API response format
@@ -51,4 +52,13 @@ type GuestRecord struct {
 	EntryTime  CustomTime `json:"entry_time" validate:"required"`
 	Content    string     `json:"content" validate:"required"`
 	CreatedAt  CustomTime `json:"created_at"`
+}
+
+// OwnerVisitLog defines owner visit log model
+type OwnerVisitLog struct {
+	ID             int        `json:"id"`
+	VisitDate      CustomDate `json:"visit_date" validate:"required"`
+	VisitCount     int        `json:"visit_count"`
+	LastVisitTime  CustomTime `json:"last_visit_time"`
+	CreatedAt      CustomTime `json:"created_at"`
 }

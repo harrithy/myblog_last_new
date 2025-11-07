@@ -41,4 +41,21 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	
+	// 博客主人访问统计接口
+	mux.HandleFunc("/owner/visits", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			GetOwnerVisitStats(w, r, db)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	
+	mux.HandleFunc("/owner/today-visits", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			GetOwnerTodayVisits(w, r, db)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 }
