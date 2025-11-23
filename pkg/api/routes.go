@@ -41,7 +41,24 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	
+
+	// 博客列表和详情接口
+	mux.HandleFunc("/blogs", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			GetBlogs(w, r, db)
+			return
+		}
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	})
+
+	mux.HandleFunc("/blogs/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			GetBlogDetail(w, r, db)
+			return
+		}
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	})
+
 	// 博客主人访问统计接口
 	mux.HandleFunc("/owner/visits", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
@@ -50,7 +67,7 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	
+
 	mux.HandleFunc("/owner/today-visits", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			GetOwnerTodayVisits(w, r, db)

@@ -49,7 +49,7 @@ func InitDB(db *sql.DB) error {
 	WHERE TABLE_SCHEMA = 'blog' 
 	AND TABLE_NAME = 'visit_logs' 
 	AND COLUMN_NAME = 'content';`
-	
+
 	err = db.QueryRow(checkQuery).Scan(&columnExists)
 	if err != nil {
 		fmt.Printf("Warning: Failed to check column: %v\n", err)
@@ -90,6 +90,23 @@ func InitDB(db *sql.DB) error {
 	);`
 
 	_, err = db.Exec(ownerVisitQuery)
+	if err != nil {
+		return err
+	}
+
+	// Create blogs table if it does not exist
+	blogQuery := `
+	CREATE TABLE IF NOT EXISTS blogs (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		title VARCHAR(255) NOT NULL,
+		url VARCHAR(500) NOT NULL UNIQUE,
+		category VARCHAR(255) NOT NULL,
+		description TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+	);`
+
+	_, err = db.Exec(blogQuery)
 	if err != nil {
 		return err
 	}

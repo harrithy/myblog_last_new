@@ -12,6 +12,23 @@ definitions:
       total:
         type: integer
     type: object
+  models.Blog:
+    properties:
+      category:
+        type: string
+      created_at:
+        $ref: '#/definitions/models.CustomTime'
+      description:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        $ref: '#/definitions/models.CustomTime'
+      url:
+        type: string
+    type: object
   models.CustomTime:
     properties:
       time.Time:
@@ -68,6 +85,79 @@ info:
   title: My Blog API
   version: "1.0"
 paths:
+  /blogs:
+    get:
+      description: 根据分类分页获取博客列表。
+      parameters:
+      - description: 博客分类
+        in: query
+        name: category
+        type: string
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量，默认10
+        in: query
+        name: pagesize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Blog'
+                  type: array
+              type: object
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      summary: 获取博客列表
+      tags:
+      - blogs
+  /blogs/{id}:
+    get:
+      description: 根据ID获取单个博客的详细信息。
+      parameters:
+      - description: 博客ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Blog'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: 博客不存在
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      summary: 获取博客详情
+      tags:
+      - blogs
   /guest:
     post:
       consumes:

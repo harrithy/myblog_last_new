@@ -62,3 +62,14 @@ type OwnerVisitLog struct {
 	LastVisitTime  CustomTime `json:"last_visit_time"`
 	CreatedAt      CustomTime `json:"created_at"`
 }
+
+// Blog defines blog metadata
+type Blog struct {
+	ID          int        `json:"id"`
+	Title       string     `json:"title"`
+	URL         string     `json:"url"`
+	Category    string     `json:"category"`
+	Description string     `json:"description"`
+	CreatedAt   CustomTime `json:"created_at"`
+	UpdatedAt   CustomTime `json:"updated_at"`
+}
