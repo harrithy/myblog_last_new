@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -94,6 +95,28 @@ func InitDB(db *sql.DB) error {
 		return err
 	}
 
+	// Create categories table first (blogs depends on it)
+	categoryQuery := `
+	CREATE TABLE IF NOT EXISTS categories (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		name VARCHAR(255) NOT NULL,
+		type VARCHAR(20) NOT NULL DEFAULT 'folder',
+		url VARCHAR(500) DEFAULT NULL,
+		parent_id INT DEFAULT NULL,
+		sort_order INT DEFAULT 0,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE CASCADE,
+		INDEX idx_parent_id (parent_id),
+		INDEX idx_sort_order (sort_order),
+		INDEX idx_type (type)
+	);`
+
+	_, err = db.Exec(categoryQuery)
+	if err != nil {
+		return err
+	}
+
 	// Create blogs table if it does not exist
 	blogQuery := `
 	CREATE TABLE IF NOT EXISTS blogs (
@@ -109,27 +132,6 @@ func InitDB(db *sql.DB) error {
 	);`
 
 	_, err = db.Exec(blogQuery)
-	if err != nil {
-		return err
-	}
-
-	// Create categories table if it does not exist
-	categoryQuery := `
-	CREATE TABLE IF NOT EXISTS categories (
-		id INT AUTO_INCREMENT PRIMARY KEY,
-		name VARCHAR(255) NOT NULL,
-		type VARCHAR(20) NOT NULL DEFAULT 'folder',
-		parent_id INT DEFAULT NULL,
-		sort_order INT DEFAULT 0,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-		FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE CASCADE,
-		INDEX idx_parent_id (parent_id),
-		INDEX idx_sort_order (sort_order),
-		INDEX idx_type (type)
-	);`
-
-	_, err = db.Exec(categoryQuery)
 	if err != nil {
 		return err
 	}
@@ -160,7 +162,16 @@ func InitDB(db *sql.DB) error {
 	return nil
 }
 func ConnectDB() (*sql.DB, error) {
-	dsn := "root:525300@tcp(localhost:3306)/blog?charset=utf8mb4&parseTime=True&loc=Local"
+	// 从环境变量读取数据库配置，如果没有则使用默认值
+	dbUser := getEnv("DB_USER", "root")
+	dbPassword := getEnv("DB_PASSWORD", "525300")
+	dbHost := getEnv("DB_HOST", "localhost")
+	dbPort := getEnv("DB_PORT", "3306")
+	dbName := getEnv("DB_NAME", "blog")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		dbUser, dbPassword, dbHost, dbPort, dbName)
+
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, err
@@ -168,6 +179,14 @@ func ConnectDB() (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
-	fmt.Println("成功连接到 MySQL 数据库 'blog'!")
+	fmt.Printf("成功连接到 MySQL 数据库 '%s'!\n", dbName)
 	return db, nil
+}
+
+// getEnv 获取环境变量，如果不存在则返回默认值
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
