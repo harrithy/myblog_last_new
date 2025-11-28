@@ -14,7 +14,10 @@ definitions:
     type: object
   models.Blog:
     properties:
-      category:
+      category_id:
+        type: integer
+      category_name:
+        description: 查询时填充
         type: string
       created_at:
         $ref: '#/definitions/models.CustomTime'
@@ -27,6 +30,33 @@ definitions:
       updated_at:
         $ref: '#/definitions/models.CustomTime'
       url:
+        type: string
+    type: object
+  models.Category:
+    properties:
+      children:
+        description: 子分类列表，查询时填充
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      created_at:
+        $ref: '#/definitions/models.CustomTime'
+      id:
+        type: integer
+      name:
+        type: string
+      parent_id:
+        description: nil表示顶级分类
+        type: integer
+      sort_order:
+        type: integer
+      type:
+        description: folder=文件夹, article=文章
+        type: string
+      updated_at:
+        $ref: '#/definitions/models.CustomTime'
+      url:
+        description: 文章类型时存储文章地址
         type: string
     type: object
   models.CustomTime:
@@ -87,12 +117,12 @@ info:
 paths:
   /blogs:
     get:
-      description: 根据分类分页获取博客列表。
+      description: 根据分类ID分页获取博客列表。
       parameters:
-      - description: 博客分类
+      - description: 分类ID
         in: query
-        name: category
-        type: string
+        name: category_id
+        type: integer
       - description: 页码，默认1
         in: query
         name: page
@@ -158,6 +188,186 @@ paths:
       summary: 获取博客详情
       tags:
       - blogs
+  /categories:
+    get:
+      description: 获取所有分类，支持树形结构返回，支持按父分类和类型筛选
+      parameters:
+      - description: 是否返回树形结构，默认true
+        in: query
+        name: tree
+        type: boolean
+      - description: 父分类ID，查询指定父分类下的子分类
+        in: query
+        name: parent_id
+        type: integer
+      - description: 类型筛选：folder(文件夹)或article(文章)
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Category'
+                  type: array
+              type: object
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      summary: 获取分类列表
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的分类，可以是顶级分类或子分类。parent_id为空表示顶级分类，传入父分类ID则创建子分类。type可选folder(文件夹)或article(文章)，默认folder。
+      parameters:
+      - description: 分类信息
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/models.Category'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Category'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: 创建失败
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      summary: 创建分类
+      tags:
+      - categories
+  /categories/{id}:
+    delete:
+      description: 删除分类，子分类会一并删除
+      parameters:
+      - description: 分类ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: 分类不存在
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: 删除失败
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      summary: 删除分类
+      tags:
+      - categories
+    get:
+      description: 根据ID获取分类详情，包含子分类
+      parameters:
+      - description: 分类ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Category'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: 分类不存在
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      summary: 获取单个分类详情
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: 更新分类信息，可修改名称、父分类和排序
+      parameters:
+      - description: 分类ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 分类信息
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/models.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Category'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: 分类不存在
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: 更新失败
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      summary: 更新分类
+      tags:
+      - categories
   /guest:
     post:
       consumes:

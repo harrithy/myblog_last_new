@@ -75,4 +75,29 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+
+	// 分类接口
+	mux.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			GetCategories(w, r, db)
+		case http.MethodPost:
+			CreateCategory(w, r, db)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	mux.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			GetCategoryByID(w, r, db)
+		case http.MethodPut:
+			UpdateCategory(w, r, db)
+		case http.MethodDelete:
+			DeleteCategory(w, r, db)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 }

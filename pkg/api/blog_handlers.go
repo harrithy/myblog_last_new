@@ -12,12 +12,12 @@ import (
 
 // GetBlogs godoc
 // @Summary 获取博客列表
-// @Description 根据分类分页获取博客列表。
+// @Description 根据分类ID分页获取博客列表。
 // @Tags blogs
 // @Produce  json
-// @Param   category   query    string  false  "博客分类"
-// @Param   page       query    int     false  "页码，默认1"
-// @Param   pagesize   query    int     false  "每页数量，默认10"
+// @Param   category_id query    int     false  "分类ID"
+// @Param   page        query    int     false  "页码，默认1"
+// @Param   pagesize    query    int     false  "每页数量，默认10"
 // @Success 200 {object} models.APIResponse{data=[]models.Blog}
 // @Failure 500 {object} models.APIResponse "查询失败"
 // @Router /blogs [get]
@@ -32,19 +32,22 @@ func GetBlogs(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		pageSize = 10
 	}
 
-	category := r.URL.Query().Get("category")
+	categoryIDStr := r.URL.Query().Get("category_id")
 
 	offset := (page - 1) * pageSize
 
 	queryArgs := make([]interface{}, 0)
 	whereClause := ""
-	if category != "" {
-		whereClause = "WHERE category = ?"
-		queryArgs = append(queryArgs, category)
+	if categoryIDStr != "" {
+		categoryID, err := strconv.Atoi(categoryIDStr)
+		if err == nil {
+			whereClause = "WHERE b.category_id = ?"
+			queryArgs = append(queryArgs, categoryID)
+		}
 	}
 
 	var total int64
-	countQuery := "SELECT COUNT(*) FROM blogs " + whereClause
+	countQuery := "SELECT COUNT(*) FROM blogs b " + whereClause
 	err = db.QueryRow(countQuery, queryArgs...).Scan(&total)
 	if err != nil {
 		response := models.ErrorResponse(500, "Failed to get total count: "+err.Error())
@@ -54,7 +57,11 @@ func GetBlogs(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
-	dataQuery := "SELECT id, title, url, category, IFNULL(description, ''), created_at, updated_at FROM blogs " + whereClause + " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+	dataQuery := `
+		SELECT b.id, b.title, b.url, b.category_id, IFNULL(c.name, ''), IFNULL(b.description, ''), b.created_at, b.updated_at 
+		FROM blogs b 
+		LEFT JOIN categories c ON b.category_id = c.id 
+		` + whereClause + ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?`
 	dataArgs := append(queryArgs, pageSize, offset)
 	rows, err := db.Query(dataQuery, dataArgs...)
 	if err != nil {
@@ -69,7 +76,7 @@ func GetBlogs(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	var blogs []models.Blog
 	for rows.Next() {
 		var blog models.Blog
-		if err := rows.Scan(&blog.ID, &blog.Title, &blog.URL, &blog.Category, &blog.Description, &blog.CreatedAt, &blog.UpdatedAt); err != nil {
+		if err := rows.Scan(&blog.ID, &blog.Title, &blog.URL, &blog.CategoryID, &blog.CategoryName, &blog.Description, &blog.CreatedAt, &blog.UpdatedAt); err != nil {
 			response := models.ErrorResponse(500, "Data parse failed: "+err.Error())
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -118,8 +125,12 @@ func GetBlogDetail(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 
 	var blog models.Blog
-	query := "SELECT id, title, url, category, IFNULL(description, ''), created_at, updated_at FROM blogs WHERE id = ?"
-	err = db.QueryRow(query, blogID).Scan(&blog.ID, &blog.Title, &blog.URL, &blog.Category, &blog.Description, &blog.CreatedAt, &blog.UpdatedAt)
+	query := `
+		SELECT b.id, b.title, b.url, b.category_id, IFNULL(c.name, ''), IFNULL(b.description, ''), b.created_at, b.updated_at 
+		FROM blogs b 
+		LEFT JOIN categories c ON b.category_id = c.id 
+		WHERE b.id = ?`
+	err = db.QueryRow(query, blogID).Scan(&blog.ID, &blog.Title, &blog.URL, &blog.CategoryID, &blog.CategoryName, &blog.Description, &blog.CreatedAt, &blog.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response := models.ErrorResponse(404, "Blog not found")

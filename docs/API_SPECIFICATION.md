@@ -251,4 +251,112 @@ func Login(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 ---
 
+## 10. 分类接口
+
+### 10.1 分类模型
+
+```json
+{
+  "id": 1,
+  "name": "技术",           // 必传
+  "type": "folder",         // 可选，folder=文件夹，article=文章，默认folder
+  "parent_id": null,        // 可选，父分类ID，null表示顶级分类
+  "sort_order": 0,          // 可选，排序顺序，默认0
+  "created_at": "2025-01-01 00:00:00",
+  "updated_at": "2025-01-01 00:00:00",
+  "children": []            // 子分类列表，查询时返回
+}
+```
+
+### 10.2 创建分类
+
+**POST** `/categories`
+
+**请求体：**
+```json
+{
+  "name": "技术",           // 必传，分类名称
+  "type": "folder",         // 可选，folder(文件夹)或article(文章)，默认folder
+  "parent_id": 1,           // 可选，父分类ID
+  "sort_order": 0           // 可选，排序顺序
+}
+```
+
+**响应示例：**
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "name": "技术",
+    "type": "folder",
+    "parent_id": null,
+    "sort_order": 0
+  }
+}
+```
+
+### 10.3 获取分类列表
+
+**GET** `/categories`
+
+| 参数 | 类型 | 必传 | 说明 |
+|------|------|------|------|
+| tree | bool | 否 | 是否返回树形结构，默认true |
+| parent_id | int | 否 | 父分类ID，查询指定父分类下的子分类 |
+| type | string | 否 | 类型筛选：folder(文件夹)或article(文章) |
+
+**响应示例（树形结构）：**
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "Vue",
+      "type": "folder",
+      "parent_id": null,
+      "sort_order": 1,
+      "children": [
+        {
+          "id": 6,
+          "name": "Vue3基础",
+          "type": "article",
+          "parent_id": 1,
+          "sort_order": 1,
+          "children": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 10.4 获取单个分类
+
+**GET** `/categories/{id}`
+
+### 10.5 更新分类
+
+**PUT** `/categories/{id}`
+
+**请求体：**
+```json
+{
+  "name": "新名称",         // 必传
+  "parent_id": 2,           // 可选
+  "sort_order": 1           // 可选
+}
+```
+
+### 10.6 删除分类
+
+**DELETE** `/categories/{id}`
+
+> 注意：删除分类会级联删除所有子分类
+
+---
+
 **注意：所有新开发的接口都必须严格按照此规范执行，确保代码质量和文档的一致性。**

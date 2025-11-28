@@ -100,15 +100,60 @@ func InitDB(db *sql.DB) error {
 		id INT AUTO_INCREMENT PRIMARY KEY,
 		title VARCHAR(255) NOT NULL,
 		url VARCHAR(500) NOT NULL UNIQUE,
-		category VARCHAR(255) NOT NULL,
+		category_id INT NOT NULL,
 		description TEXT,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+		INDEX idx_category_id (category_id)
 	);`
 
 	_, err = db.Exec(blogQuery)
 	if err != nil {
 		return err
+	}
+
+	// Create categories table if it does not exist
+	categoryQuery := `
+	CREATE TABLE IF NOT EXISTS categories (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		name VARCHAR(255) NOT NULL,
+		type VARCHAR(20) NOT NULL DEFAULT 'folder',
+		parent_id INT DEFAULT NULL,
+		sort_order INT DEFAULT 0,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE CASCADE,
+		INDEX idx_parent_id (parent_id),
+		INDEX idx_sort_order (sort_order),
+		INDEX idx_type (type)
+	);`
+
+	_, err = db.Exec(categoryQuery)
+	if err != nil {
+		return err
+	}
+
+	// 为现有的categories表添加type字段（如果不存在）
+	var typeColumnExists bool
+	checkTypeQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = 'blog' 
+	AND TABLE_NAME = 'categories' 
+	AND COLUMN_NAME = 'type';`
+
+	err = db.QueryRow(checkTypeQuery).Scan(&typeColumnExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check type column: %v\n", err)
+	} else if !typeColumnExists {
+		alterQuery := "ALTER TABLE categories ADD COLUMN type VARCHAR(20) NOT NULL DEFAULT 'folder' AFTER name;"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add type column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 type 字段到 categories 表")
+		}
 	}
 
 	fmt.Println("数据库表初始化成功!")
