@@ -87,3 +87,15 @@ type Category struct {
 	UpdatedAt CustomTime `json:"updated_at"`
 	Children  []Category `json:"children,omitempty"` // 子分类列表，查询时填充
 }
+
+// Comment defines comment model with parent-child relationship
+type Comment struct {
+	ID        int        `json:"id"`
+	ArticleID int        `json:"article_id"`          // 关联的文章ID（分类ID，type=article）
+	ParentID  *int       `json:"parent_id,omitempty"` // 父评论ID，nil表示顶级评论
+	Nickname  string     `json:"nickname"`            // 评论者昵称
+	Email     string     `json:"email,omitempty"`     // 评论者邮箱（可选）
+	Content   string     `json:"content"`             // 评论内容
+	CreatedAt CustomTime `json:"created_at"`
+	Children  []Comment  `json:"children,omitempty"` // 子评论列表，查询时填充
+}

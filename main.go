@@ -38,6 +38,10 @@ func main() {
 	// Swagger UI
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
+	// 静态文件服务
+	fs := http.FileServer(http.Dir("static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	// 从环境变量获取端口，默认8080
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -47,6 +51,7 @@ func main() {
 	// 启动服务器
 	fmt.Printf("服务器正在端口 %s 启动...\n", port)
 	fmt.Printf("API 文档地址: http://localhost:%s/swagger/index.html\n", port)
+	fmt.Printf("分类管理页面: http://localhost:%s/static/category.html\n", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatalf("无法启动服务器: %v", err)
 	}

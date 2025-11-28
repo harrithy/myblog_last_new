@@ -158,6 +158,27 @@ func InitDB(db *sql.DB) error {
 		}
 	}
 
+	// Create comments table if it does not exist
+	commentQuery := `
+	CREATE TABLE IF NOT EXISTS comments (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		article_id INT NOT NULL,
+		parent_id INT DEFAULT NULL,
+		nickname VARCHAR(255) NOT NULL,
+		email VARCHAR(255) DEFAULT NULL,
+		content TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (article_id) REFERENCES categories(id) ON DELETE CASCADE,
+		FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE,
+		INDEX idx_article_id (article_id),
+		INDEX idx_parent_id (parent_id)
+	);`
+
+	_, err = db.Exec(commentQuery)
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("数据库表初始化成功!")
 	return nil
 }
