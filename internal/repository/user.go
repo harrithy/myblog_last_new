@@ -53,3 +53,77 @@ func (r *UserRepository) Create(u *models.User) error {
 	)
 	return err
 }
+
+// GetByGitHubID 根据 GitHub ID 查找用户
+func (r *UserRepository) GetByGitHubID(githubID int64) (*models.User, error) {
+	var user models.User
+	var avatarURL, githubURL sql.NullString
+	err := r.db.QueryRow(
+		"SELECT id, name, email, nickname, COALESCE(birthday, ''), COALESCE(github_id, 0), COALESCE(avatar_url, ''), COALESCE(github_url, '') FROM users WHERE github_id = ?",
+		githubID,
+	).Scan(&user.ID, &user.Name, &user.Account, &user.Nickname, &user.Birthday, &user.GitHubID, &avatarURL, &githubURL)
+	if err != nil {
+		return nil, err
+	}
+	user.AvatarURL = avatarURL.String
+	user.GitHubURL = githubURL.String
+	return &user, nil
+}
+
+// FindOrCreateByGitHub 根据 GitHub 用户信息查找或创建用户
+func (r *UserRepository) FindOrCreateByGitHub(githubUser *models.GitHubUser) (*models.User, error) {
+	// 先尝试根据 GitHub ID 查找用户
+	user, err := r.GetByGitHubID(githubUser.ID)
+	if err == nil {
+		// 用户已存在，更新信息
+		_, updateErr := r.db.Exec(
+			"UPDATE users SET name = ?, avatar_url = ?, github_url = ? WHERE github_id = ?",
+			githubUser.Name, githubUser.AvatarURL, githubUser.HTMLURL, githubUser.ID,
+		)
+		if updateErr != nil {
+			return nil, updateErr
+		}
+		user.Name = githubUser.Name
+		user.AvatarURL = githubUser.AvatarURL
+		user.GitHubURL = githubUser.HTMLURL
+		return user, nil
+	}
+
+	if err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	// 用户不存在，创建新用户
+	email := githubUser.Email
+	if email == "" {
+		email = githubUser.Login + "@github.com" // 如果没有公开邮箱，使用 GitHub 用户名生成
+	}
+
+	name := githubUser.Name
+	if name == "" {
+		name = githubUser.Login
+	}
+
+	result, err := r.db.Exec(
+		"INSERT INTO users(name, email, nickname, github_id, avatar_url, github_url) VALUES(?, ?, ?, ?, ?, ?)",
+		name, email, githubUser.Login, githubUser.ID, githubUser.AvatarURL, githubUser.HTMLURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.User{
+		ID:        int(id),
+		Name:      name,
+		Account:   email,
+		Nickname:  githubUser.Login,
+		GitHubID:  githubUser.ID,
+		AvatarURL: githubUser.AvatarURL,
+		GitHubURL: githubUser.HTMLURL,
+	}, nil
+}

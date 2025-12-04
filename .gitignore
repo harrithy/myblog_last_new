@@ -1,0 +1,17 @@
+# 可执行文件
+*.exe
+myblog_server
+
+# 环境变量配置（包含敏感信息）
+.env
+start.bat
+start_dev.bat
+start_prod.bat
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# 日志
+*.log

@@ -53,9 +53,10 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	categoryHandler := handler.NewCategoryHandler(categoryRepo)
 	visitHandler := handler.NewVisitHandler(visitRepo, guestRepo, ownerRepo)
 	commentHandler := handler.NewCommentHandler(commentRepo)
+	githubAuthHandler := handler.NewGitHubAuthHandler(userRepo)
 
 	// 注册 /path 和 /api/path 两种路径模式的路由
-	registerDualRoutes(router, authHandler, userHandler, blogHandler, categoryHandler, visitHandler, commentHandler)
+	registerDualRoutes(router, authHandler, userHandler, blogHandler, categoryHandler, visitHandler, commentHandler, githubAuthHandler)
 }
 
 // registerDualRoutes 注册 /path 和 /api/path 两种路径模式的路由
@@ -67,6 +68,7 @@ func registerDualRoutes(
 	categoryHandler *handler.CategoryHandler,
 	visitHandler *handler.VisitHandler,
 	commentHandler *handler.CommentHandler,
+	githubAuthHandler *handler.GitHubAuthHandler,
 ) {
 	paths := []string{"", "/api"}
 
@@ -187,6 +189,31 @@ func registerDualRoutes(
 		router.Handle(prefix+"/comments/", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodDelete {
 				commentHandler.DeleteComment(w, r)
+				return
+			}
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		})
+
+		// GitHub OAuth 路由
+		router.Handle(prefix+"/auth/github", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				githubAuthHandler.GetGitHubLoginURL(w, r)
+				return
+			}
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		})
+
+		router.Handle(prefix+"/auth/github/callback", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				githubAuthHandler.GitHubCallback(w, r)
+				return
+			}
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		})
+
+		router.Handle(prefix+"/auth/github/login", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				githubAuthHandler.GitHubCallbackWithCode(w, r)
 				return
 			}
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

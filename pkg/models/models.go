@@ -2,12 +2,25 @@ package models
 
 // User defines user model
 type User struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Account  string `json:"account"`
-	Nickname string `json:"nickname"`
-	Birthday string `json:"birthday"`
-	Password string `json:"password,omitempty"`
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Account   string `json:"account"`
+	Nickname  string `json:"nickname"`
+	Birthday  string `json:"birthday"`
+	Password  string `json:"password,omitempty"`
+	GitHubID  int64  `json:"github_id,omitempty"`  // GitHub 用户 ID
+	AvatarURL string `json:"avatar_url,omitempty"` // GitHub 头像 URL
+	GitHubURL string `json:"github_url,omitempty"` // GitHub 主页 URL
+}
+
+// GitHubUser defines GitHub user info from OAuth
+type GitHubUser struct {
+	ID        int64  `json:"id"`
+	Login     string `json:"login"`      // GitHub 用户名
+	Name      string `json:"name"`       // 显示名称
+	Email     string `json:"email"`      // 邮箱
+	AvatarURL string `json:"avatar_url"` // 头像 URL
+	HTMLURL   string `json:"html_url"`   // GitHub 主页
 }
 
 // APIResponse defines the standard API response format
