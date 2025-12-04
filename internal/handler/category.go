@@ -61,7 +61,7 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 
 	id, err := h.repo.Create(&category)
 	if err != nil {
-		response.InternalError(w, "Failed to create category: "+err.Error())
+		response.InternalError(w, "创建分类失败: "+err.Error())
 		return
 	}
 
