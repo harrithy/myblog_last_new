@@ -1,4 +1,4 @@
-package auth
+package middleware
 
 import (
 	"net/http"
@@ -10,11 +10,13 @@ import (
 
 var jwtKey = []byte("my_secret_key")
 
+// Claims 表示 JWT 声明
 type Claims struct {
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
+// GenerateJWT 为指定用户名生成 JWT 令牌
 func GenerateJWT(username string) (string, error) {
 	now := time.Now()
 	midnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
@@ -30,7 +32,8 @@ func GenerateJWT(username string) (string, error) {
 	return token.SignedString(jwtKey)
 }
 
-func Middleware(next http.HandlerFunc) http.HandlerFunc {
+// Auth 是验证 JWT 令牌的中间件
+func Auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
