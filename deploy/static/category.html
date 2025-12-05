@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分类管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #aaa;
+        }
+
+        .type-selector {
+            display: flex;
+            gap: 15px;
+        }
+
+        .type-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .type-option:hover {
+            border-color: #667eea;
+        }
+
+        .type-option.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+
+        .type-option .icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .type-option .label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .type-option .desc {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .url-field {
+            display: none;
+        }
+
+        .url-field.show {
+            display: block;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .category-tree {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .tree-item {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .tree-item:hover {
+            background: #f0f0f0;
+        }
+
+        .tree-item-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tree-item .icon {
+            font-size: 1.2rem;
+        }
+
+        .tree-item .name {
+            flex: 1;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .tree-item .type-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .type-badge.folder {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .type-badge.article {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .tree-children {
+            margin-left: 25px;
+            margin-top: 10px;
+            padding-left: 15px;
+            border-left: 2px solid #e0e0e0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: #4caf50;
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .tree-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn.delete {
+            color: #f44336;
+        }
+
+        .action-btn.delete:hover {
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        .action-btn.select {
+            color: #667eea;
+        }
+
+        .action-btn.select:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📂 分类管理</h1>
+        
+        <div class="main-content">
+            <!-- 创建分类表单 -->
+            <div class="card">
+                <h2>创建新分类</h2>
+                
+                <form id="categoryForm">
+                    <div class="form-group">
+                        <label>分类名称 *</label>
+                        <input type="text" id="categoryName" placeholder="请输入分类名称" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>分类类型 *</label>
+                        <div class="type-selector">
+                            <div class="type-option active" data-type="folder">
+                                <div class="icon">📁</div>
+                                <div class="label">文件夹</div>
+                                <div class="desc">可包含子分类</div>
+                            </div>
+                            <div class="type-option" data-type="article">
+                                <div class="icon">📄</div>
+                                <div class="label">文章</div>
+                                <div class="desc">链接到文章</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="categoryType" value="folder">
+                    </div>
+
+                    <div class="form-group url-field" id="urlField">
+                        <label>文章链接</label>
+                        <input type="url" id="categoryUrl" placeholder="请输入文章URL">
+                    </div>
+
+                    <div class="form-group">
+                        <label>父分类</label>
+                        <select id="parentCategory">
+                            <option value="">无（顶级分类）</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>排序顺序</label>
+                        <input type="number" id="sortOrder" value="0" min="0" placeholder="数字越小越靠前">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">创建分类</button>
+                </form>
+            </div>
+
+            <!-- 分类列表 -->
+            <div class="card">
+                <h2>
+                    分类列表
+                    <button class="refresh-btn" onclick="loadCategories()" title="刷新">🔄</button>
+                </h2>
+                
+                <div id="categoryTree" class="category-tree">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        // 类型选择器
+        document.querySelectorAll('.type-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                
+                const type = option.dataset.type;
+                document.getElementById('categoryType').value = type;
+                
+                const urlField = document.getElementById('urlField');
+                if (type === 'article') {
+                    urlField.classList.add('show');
+                } else {
+                    urlField.classList.remove('show');
+                }
+            });
+        });
+
+        // 显示提示
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 加载分类列表
+        async function loadCategories() {
+            const treeContainer = document.getElementById('categoryTree');
+            treeContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/categories?tree=true`);
+                const result = await response.json();
+                
+                if (result.code === 200 && result.data) {
+                    renderCategoryTree(result.data);
+                    updateParentSelect(result.data);
+                } else {
+                    treeContainer.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无分类</p></div>';
+                }
+            } catch (error) {
+                console.error('加载分类失败:', error);
+                treeContainer.innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>加载失败，请重试</p></div>';
+            }
+        }
+
+        // 渲染分类树
+        function renderCategoryTree(categories) {
+            const treeContainer = document.getElementById('categoryTree');
+            
+            if (!categories || categories.length === 0) {
+                treeContainer.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无分类，请创建第一个分类</p></div>';
+                return;
+            }
+            
+            treeContainer.innerHTML = renderTreeItems(categories);
+        }
+
+        function renderTreeItems(items, level = 0) {
+            if (!items || items.length === 0) return '';
+            
+            return items.map(item => {
+                const icon = item.type === 'folder' ? '📁' : '📄';
+                const typeBadge = item.type === 'folder' ? 
+                    '<span class="type-badge folder">文件夹</span>' : 
+                    '<span class="type-badge article">文章</span>';
+                
+                const children = item.children && item.children.length > 0 ? 
+                    `<div class="tree-children">${renderTreeItems(item.children, level + 1)}</div>` : '';
+                
+                return `
+                    <div class="tree-item">
+                        <div class="tree-item-header">
+                            <span class="icon">${icon}</span>
+                            <span class="name">${escapeHtml(item.name)}</span>
+                            ${typeBadge}
+                            <div class="tree-item-actions">
+                                ${item.type === 'folder' ? `<button class="action-btn select" onclick="selectAsParent(${item.id}, '${escapeHtml(item.name)}')" title="选为父分类">📌</button>` : ''}
+                                <button class="action-btn delete" onclick="deleteCategory(${item.id})" title="删除">🗑️</button>
+                            </div>
+                        </div>
+                        ${children}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 更新父分类下拉框
+        function updateParentSelect(categories, prefix = '', parentSelect = null) {
+            if (!parentSelect) {
+                parentSelect = document.getElementById('parentCategory');
+                parentSelect.innerHTML = '<option value="">无（顶级分类）</option>';
+            }
+            
+            categories.forEach(cat => {
+                // 只有文件夹类型才能作为父分类
+                if (cat.type === 'folder') {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = prefix + cat.name;
+                    parentSelect.appendChild(option);
+                    
+                    if (cat.children && cat.children.length > 0) {
+                        updateParentSelect(cat.children, prefix + '└─ ', parentSelect);
+                    }
+                }
+            });
+        }
+
+        // 选择作为父分类
+        function selectAsParent(id, name) {
+            const parentSelect = document.getElementById('parentCategory');
+            parentSelect.value = id;
+            showToast(`已选择 "${name}" 作为父分类`, 'success');
+        }
+
+        // 删除分类
+        async function deleteCategory(id) {
+            if (!confirm('确定要删除这个分类吗？子分类也会被一并删除！')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/categories/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    showToast('删除成功', 'success');
+                    loadCategories();
+                } else {
+                    showToast(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                console.error('删除失败:', error);
+                showToast('删除失败，请重试', 'error');
+            }
+        }
+
+        // 创建分类
+        document.getElementById('categoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('categoryName').value.trim();
+            const type = document.getElementById('categoryType').value;
+            const url = document.getElementById('categoryUrl').value.trim();
+            const parentId = document.getElementById('parentCategory').value;
+            const sortOrder = parseInt(document.getElementById('sortOrder').value) || 0;
+            
+            if (!name) {
+                showToast('请输入分类名称', 'error');
+                return;
+            }
+            
+            const data = {
+                name: name,
+                type: type,
+                sort_order: sortOrder
+            };
+            
+            if (type === 'article' && url) {
+                data.url = url;
+            }
+            
+            if (parentId) {
+                data.parent_id = parseInt(parentId);
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/categories`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.code === 200 || response.status === 201) {
+                    showToast('创建成功', 'success');
+                    
+                    // 重置表单
+                    document.getElementById('categoryName').value = '';
+                    document.getElementById('categoryUrl').value = '';
+                    document.getElementById('sortOrder').value = '0';
+                    document.getElementById('parentCategory').value = '';
+                    
+                    // 重置类型选择
+                    document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
+                    document.querySelector('.type-option[data-type="folder"]').classList.add('active');
+                    document.getElementById('categoryType').value = 'folder';
+                    document.getElementById('urlField').classList.remove('show');
+                    
+                    // 刷新列表
+                    loadCategories();
+                } else {
+                    showToast(result.message || '创建失败', 'error');
+                }
+            } catch (error) {
+                console.error('创建失败:', error);
+                showToast('创建失败，请重试', 'error');
+            }
+        });
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 页面加载时获取分类列表
+        document.addEventListener('DOMContentLoaded', loadCategories);
+    </script>
+</body>
+</html>
