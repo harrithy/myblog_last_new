@@ -19,7 +19,8 @@ func InitDB(db *sql.DB) error {
 		nickname VARCHAR(255),
 		birthday DATE,
 		github_id BIGINT DEFAULT NULL,
-		avatar VARCHAR(500) DEFAULT NULL,
+		avatar_url VARCHAR(500) DEFAULT NULL,
+		github_url VARCHAR(500) DEFAULT NULL,
 		account VARCHAR(255) DEFAULT NULL,
 		password VARCHAR(255) DEFAULT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -54,25 +55,47 @@ func InitDB(db *sql.DB) error {
 		}
 	}
 
-	// 为现有的users表添加avatar字段（如果不存在）
+	// 为现有的users表添加avatar_url字段（如果不存在）
 	var avatarExists bool
 	checkAvatarQuery := `
 	SELECT COUNT(*) 
 	FROM INFORMATION_SCHEMA.COLUMNS 
 	WHERE TABLE_SCHEMA = DATABASE() 
 	AND TABLE_NAME = 'users' 
-	AND COLUMN_NAME = 'avatar';`
+	AND COLUMN_NAME = 'avatar_url';`
 
 	err = db.QueryRow(checkAvatarQuery).Scan(&avatarExists)
 	if err != nil {
-		fmt.Printf("Warning: Failed to check avatar column: %v\n", err)
+		fmt.Printf("Warning: Failed to check avatar_url column: %v\n", err)
 	} else if !avatarExists {
-		alterQuery := "ALTER TABLE users ADD COLUMN avatar VARCHAR(500) DEFAULT NULL;"
+		alterQuery := "ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) DEFAULT NULL;"
 		_, err = db.Exec(alterQuery)
 		if err != nil {
-			fmt.Printf("Warning: Failed to add avatar column: %v\n", err)
+			fmt.Printf("Warning: Failed to add avatar_url column: %v\n", err)
 		} else {
-			fmt.Println("成功添加 avatar 字段到 users 表")
+			fmt.Println("成功添加 avatar_url 字段到 users 表")
+		}
+	}
+
+	// 为现有的users表添加github_url字段（如果不存在）
+	var githubUrlExists bool
+	checkGithubUrlQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = DATABASE() 
+	AND TABLE_NAME = 'users' 
+	AND COLUMN_NAME = 'github_url';`
+
+	err = db.QueryRow(checkGithubUrlQuery).Scan(&githubUrlExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check github_url column: %v\n", err)
+	} else if !githubUrlExists {
+		alterQuery := "ALTER TABLE users ADD COLUMN github_url VARCHAR(500) DEFAULT NULL;"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add github_url column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 github_url 字段到 users 表")
 		}
 	}
 
