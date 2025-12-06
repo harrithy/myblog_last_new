@@ -94,6 +94,7 @@ type Category struct {
 	Name      string     `json:"name"`
 	Type      string     `json:"type"`                // folder=文件夹, article=文章
 	URL       string     `json:"url,omitempty"`       // 文章类型时存储文章地址
+	ImgURL    string     `json:"img_url,omitempty"`   // 分类封面图片URL
 	ParentID  *int       `json:"parent_id,omitempty"` // nil表示顶级分类
 	SortOrder int        `json:"sort_order"`
 	CreatedAt CustomTime `json:"created_at"`

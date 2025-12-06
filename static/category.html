@@ -331,6 +331,47 @@
         .action-btn.select:hover {
             background: rgba(102, 126, 234, 0.1);
         }
+
+        .img-upload-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .img-upload-wrapper input[type="url"] {
+            flex: 1;
+        }
+
+        .upload-btn {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn.uploading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .img-preview {
+            margin-top: 10px;
+        }
+
+        .img-preview img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -368,6 +409,18 @@
                     <div class="form-group url-field" id="urlField">
                         <label>文章链接</label>
                         <input type="url" id="categoryUrl" placeholder="请输入文章URL">
+                    </div>
+
+                    <div class="form-group">
+                        <label>封面图片</label>
+                        <div class="img-upload-wrapper">
+                            <input type="url" id="categoryImgUrl" placeholder="图片URL（可上传或直接输入）">
+                            <label class="upload-btn" for="imgFileInput">
+                                📷 上传
+                                <input type="file" id="imgFileInput" accept="image/*" style="display: none;">
+                            </label>
+                        </div>
+                        <div id="imgPreview" class="img-preview"></div>
                     </div>
 
                     <div class="form-group">
@@ -540,11 +593,11 @@
                 
                 const result = await response.json();
                 
-                if (result.code === 200) {
+                if (result.code === 200 || response.ok) {
                     showToast('删除成功', 'success');
                     loadCategories();
                 } else {
-                    showToast(result.message || '删除失败', 'error');
+                    showToast(result.msg || result.message || '删除失败', 'error');
                 }
             } catch (error) {
                 console.error('删除失败:', error);
@@ -567,6 +620,8 @@
                 return;
             }
             
+            const imgUrl = document.getElementById('categoryImgUrl').value.trim();
+            
             const data = {
                 name: name,
                 type: type,
@@ -575,6 +630,10 @@
             
             if (type === 'article' && url) {
                 data.url = url;
+            }
+            
+            if (imgUrl) {
+                data.img_url = imgUrl;
             }
             
             if (parentId) {
@@ -598,6 +657,8 @@
                     // 重置表单
                     document.getElementById('categoryName').value = '';
                     document.getElementById('categoryUrl').value = '';
+                    document.getElementById('categoryImgUrl').value = '';
+                    document.getElementById('imgPreview').innerHTML = '';
                     document.getElementById('sortOrder').value = '0';
                     document.getElementById('parentCategory').value = '';
                     
@@ -624,6 +685,61 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // 图片上传功能
+        const IMG_HOST = 'https://image.harrio.xyz';
+        
+        document.getElementById('imgFileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const uploadBtn = document.querySelector('.upload-btn');
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = '⭐ 上传中...';
+            uploadBtn.classList.add('uploading');
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // 使用本地代理接口避免 CORS 问题
+                const response = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result && result.length > 0 && result[0].src) {
+                    const imgUrl = IMG_HOST + result[0].src;
+                    document.getElementById('categoryImgUrl').value = imgUrl;
+                    
+                    // 显示预览
+                    document.getElementById('imgPreview').innerHTML = `<img src="${imgUrl}" alt="预览">`;
+                    
+                    showToast('图片上传成功', 'success');
+                } else {
+                    showToast('上传失败，请重试', 'error');
+                }
+            } catch (error) {
+                console.error('上传失败:', error);
+                showToast('上传失败，请重试', 'error');
+            } finally {
+                uploadBtn.innerHTML = originalText;
+                uploadBtn.classList.remove('uploading');
+                e.target.value = ''; // 清空文件选择
+            }
+        });
+        
+        // 手动输入URL时显示预览
+        document.getElementById('categoryImgUrl').addEventListener('blur', (e) => {
+            const url = e.target.value.trim();
+            if (url) {
+                document.getElementById('imgPreview').innerHTML = `<img src="${url}" alt="预览" onerror="this.style.display='none'">`;
+            } else {
+                document.getElementById('imgPreview').innerHTML = '';
+            }
+        });
 
         // 页面加载时获取分类列表
         document.addEventListener('DOMContentLoaded', loadCategories);

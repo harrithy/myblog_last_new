@@ -15,9 +15,121 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/github": {
+            "get": {
+                "description": "返回 GitHub OAuth 授权页面的 URL",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "获取 GitHub 登录 URL",
+                "responses": {
+                    "200": {
+                        "description": "{\"url\": \"...\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/github/callback": {
+            "get": {
+                "description": "处理 GitHub OAuth 回调，获取用户信息并登录/注册",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "GitHub OAuth 回调",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "GitHub 授权码",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\"token\": \"...\", \"user\": {...}}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "缺少授权码",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取 token 失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/github/login": {
+            "post": {
+                "description": "前端传递 GitHub 授权码，后端处理登录/注册",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "使用授权码进行 GitHub 登录",
+                "parameters": [
+                    {
+                        "description": "包含 code 的请求体",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\"token\": \"...\", \"user\": {...}}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "无效的请求体",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取 token 失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/blogs": {
             "get": {
-                "description": "根据分类ID分页获取博客列表。",
+                "description": "根据分类ID分页获取博客列表，支持关键词搜索。",
                 "produces": [
                     "application/json"
                 ],
@@ -30,6 +142,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "分类ID",
                         "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词",
+                        "name": "keyword",
                         "in": "query"
                     },
                     {
@@ -51,7 +169,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -70,7 +188,7 @@ const docTemplate = `{
                     "500": {
                         "description": "查询失败",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -101,7 +219,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -117,19 +235,19 @@ const docTemplate = `{
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
                         "description": "博客不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
                         "description": "查询失败",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -137,7 +255,7 @@ const docTemplate = `{
         },
         "/categories": {
             "get": {
-                "description": "获取所有分类，支持树形结构返回，支持按父分类和类型筛选",
+                "description": "获取所有分类，支持树形结构返回",
                 "produces": [
                     "application/json"
                 ],
@@ -154,14 +272,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "父分类ID，查询指定父分类下的子分类",
+                        "description": "父分类ID",
                         "name": "parent_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "类型筛选：folder(文件夹)或article(文章)",
+                        "description": "类型筛选：folder或article",
                         "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "标题模糊搜索关键词",
+                        "name": "keyword",
                         "in": "query"
                     }
                 ],
@@ -171,7 +295,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -190,13 +314,13 @@ const docTemplate = `{
                     "500": {
                         "description": "查询失败",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
             },
             "post": {
-                "description": "创建一个新的分类，可以是顶级分类或子分类。parent_id为空表示顶级分类，传入父分类ID则创建子分类。type可选folder(文件夹)或article(文章)，默认folder。",
+                "description": "创建一个新的分类，可以是顶级分类或子分类。",
                 "consumes": [
                     "application/json"
                 ],
@@ -224,7 +348,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -240,13 +364,13 @@ const docTemplate = `{
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
                         "description": "创建失败",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -277,7 +401,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -293,25 +417,19 @@ const docTemplate = `{
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
                         "description": "分类不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "查询失败",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
             },
             "put": {
-                "description": "更新分类信息，可修改名称、父分类和排序",
+                "description": "更新分类信息",
                 "consumes": [
                     "application/json"
                 ],
@@ -346,7 +464,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -362,19 +480,13 @@ const docTemplate = `{
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
                         "description": "分类不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "更新失败",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -401,25 +513,109 @@ const docTemplate = `{
                     "200": {
                         "description": "删除成功",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
                         "description": "分类不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
-                    },
-                    "500": {
-                        "description": "删除失败",
+                    }
+                }
+            }
+        },
+        "/comments": {
+            "get": {
+                "description": "根据文章ID获取评论列表，返回树形结构",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "获取文章评论列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "文章ID",
+                        "name": "article_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "为文章创建评论，支持回复其他评论",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "创建评论",
+                "parameters": [
+                    {
+                        "description": "评论信息",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/comments/{id}": {
+            "delete": {
+                "description": "根据ID删除评论",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "删除评论",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "评论ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -455,7 +651,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -473,7 +669,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "验证用户身份并返回一个 JWT 令牌。",
+                "description": "验证用户身份并返回一个 JWT 令牌",
                 "consumes": [
                     "application/json"
                 ],
@@ -516,12 +712,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
-                    },
-                    "500": {
-                        "description": "查询失败或生成令牌失败",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 }
             }
@@ -529,9 +719,6 @@ const docTemplate = `{
         "/owner/today-visits": {
             "get": {
                 "description": "获取博客主人今天的访问次数统计",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -541,11 +728,11 @@ const docTemplate = `{
                 "summary": "获取博客主人今日访问次数",
                 "responses": {
                     "200": {
-                        "description": "获取成功",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -557,22 +744,13 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "500": {
-                        "description": "查询失败",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
-                        }
                     }
                 }
             }
         },
         "/owner/visits": {
             "get": {
-                "description": "获取博客主人指定天数内每天访问次数的统计信息，包含访问日期、访问次数和最后访问时间",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "获取博客主人指定天数内每天访问次数的统计信息",
                 "produces": [
                     "application/json"
                 ],
@@ -583,18 +761,18 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "获取最近多少天的数据，默认7天，最大365天",
+                        "description": "获取最近多少天的数据，默认7天",
                         "name": "days",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "获取成功",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -605,18 +783,6 @@ const docTemplate = `{
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "查询失败",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
                         }
                     }
                 }
@@ -702,7 +868,7 @@ const docTemplate = `{
         },
         "/visits": {
             "get": {
-                "description": "检索所有用户访问日志的列表，按访问时间降序排列。",
+                "description": "检索所有用户访问日志的列表",
                 "produces": [
                     "application/json"
                 ],
@@ -716,7 +882,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -731,17 +897,11 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
-                        }
                     }
                 }
             },
             "post": {
-                "description": "记录一次新的用户访问。用户昵称是可选的，访问时间是必传的，内容是可选的。",
+                "description": "记录一次新的用户访问",
                 "consumes": [
                     "application/json"
                 ],
@@ -769,7 +929,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -787,24 +947,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.APIResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {},
-                "msg": {
-                    "type": "string"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.Blog": {
             "type": "object",
             "properties": {
@@ -909,7 +1051,19 @@ const docTemplate = `{
                 "account": {
                     "type": "string"
                 },
+                "avatar_url": {
+                    "description": "GitHub 头像 URL",
+                    "type": "string"
+                },
                 "birthday": {
+                    "type": "string"
+                },
+                "github_id": {
+                    "description": "GitHub 用户 ID",
+                    "type": "integer"
+                },
+                "github_url": {
+                    "description": "GitHub 主页 URL",
                     "type": "string"
                 },
                 "id": {
@@ -946,6 +1100,24 @@ const docTemplate = `{
                 },
                 "visit_time": {
                     "$ref": "#/definitions/models.CustomTime"
+                }
+            }
+        },
+        "response.APIResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "msg": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         }

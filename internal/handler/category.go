@@ -77,6 +77,7 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 // @Param   tree      query    bool    false  "是否返回树形结构，默认true"
 // @Param   parent_id query    int     false  "父分类ID"
 // @Param   type      query    string  false  "类型筛选：folder或article"
+// @Param   keyword   query    string  false  "标题模糊搜索关键词"
 // @Success 200 {object} response.APIResponse{data=[]models.Category}
 // @Failure 500 {object} response.APIResponse "查询失败"
 // @Router /categories [get]
@@ -85,7 +86,8 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 	parentIDStr := r.URL.Query().Get("parent_id")
 
 	filter := repository.CategoryFilter{
-		Type: r.URL.Query().Get("type"),
+		Type:    r.URL.Query().Get("type"),
+		Keyword: r.URL.Query().Get("keyword"),
 	}
 
 	if parentIDStr != "" {
@@ -101,7 +103,8 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var result interface{}
-	if treeMode && parentIDStr == "" {
+	// 使用关键词搜索时，直接返回扁平列表
+	if treeMode && parentIDStr == "" && filter.Keyword == "" {
 		result = repository.BuildCategoryTree(categories)
 	} else {
 		result = categories

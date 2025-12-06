@@ -19,11 +19,12 @@ func NewCategoryRepository(db *sql.DB) *CategoryRepository {
 type CategoryFilter struct {
 	ParentID *int
 	Type     string
+	Keyword  string // 标题模糊搜索关键词
 }
 
 // GetAll 返回所有分类，支持可选过滤
 func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, error) {
-	query := "SELECT id, name, type, IFNULL(url, ''), parent_id, sort_order, created_at, updated_at FROM categories WHERE 1=1"
+	query := "SELECT id, name, type, IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at FROM categories WHERE 1=1"
 	var args []interface{}
 
 	if filter.ParentID != nil {
@@ -34,6 +35,11 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, e
 	if filter.Type != "" && (filter.Type == "folder" || filter.Type == "article") {
 		query += " AND type = ?"
 		args = append(args, filter.Type)
+	}
+
+	if filter.Keyword != "" {
+		query += " AND name LIKE ?"
+		args = append(args, "%"+filter.Keyword+"%")
 	}
 
 	query += " ORDER BY sort_order ASC, id ASC"
@@ -48,7 +54,7 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, e
 	for rows.Next() {
 		var cat models.Category
 		var parentID sql.NullInt64
-		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.URL, &parentID, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
+		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.URL, &cat.ImgURL, &parentID, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if parentID.Valid {
@@ -67,9 +73,9 @@ func (r *CategoryRepository) GetByID(id int) (*models.Category, error) {
 	var parentID sql.NullInt64
 
 	err := r.db.QueryRow(`
-		SELECT id, name, type, IFNULL(url, ''), parent_id, sort_order, created_at, updated_at 
+		SELECT id, name, type, IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at 
 		FROM categories WHERE id = ?
-	`, id).Scan(&category.ID, &category.Name, &category.Type, &category.URL, &parentID, &category.SortOrder, &category.CreatedAt, &category.UpdatedAt)
+	`, id).Scan(&category.ID, &category.Name, &category.Type, &category.URL, &category.ImgURL, &parentID, &category.SortOrder, &category.CreatedAt, &category.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -97,13 +103,13 @@ func (r *CategoryRepository) Create(cat *models.Category) (int64, error) {
 
 	if cat.ParentID != nil {
 		result, err = r.db.Exec(
-			"INSERT INTO categories (name, type, url, parent_id, sort_order) VALUES (?, ?, ?, ?, ?)",
-			cat.Name, cat.Type, cat.URL, *cat.ParentID, cat.SortOrder,
+			"INSERT INTO categories (name, type, url, img_url, parent_id, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+			cat.Name, cat.Type, cat.URL, cat.ImgURL, *cat.ParentID, cat.SortOrder,
 		)
 	} else {
 		result, err = r.db.Exec(
-			"INSERT INTO categories (name, type, url, sort_order) VALUES (?, ?, ?, ?)",
-			cat.Name, cat.Type, cat.URL, cat.SortOrder,
+			"INSERT INTO categories (name, type, url, img_url, sort_order) VALUES (?, ?, ?, ?, ?)",
+			cat.Name, cat.Type, cat.URL, cat.ImgURL, cat.SortOrder,
 		)
 	}
 
@@ -121,13 +127,13 @@ func (r *CategoryRepository) Update(id int, cat *models.Category) (int64, error)
 
 	if cat.ParentID != nil {
 		result, err = r.db.Exec(
-			"UPDATE categories SET name = ?, type = ?, url = ?, parent_id = ?, sort_order = ? WHERE id = ?",
-			cat.Name, cat.Type, cat.URL, *cat.ParentID, cat.SortOrder, id,
+			"UPDATE categories SET name = ?, type = ?, url = ?, img_url = ?, parent_id = ?, sort_order = ? WHERE id = ?",
+			cat.Name, cat.Type, cat.URL, cat.ImgURL, *cat.ParentID, cat.SortOrder, id,
 		)
 	} else {
 		result, err = r.db.Exec(
-			"UPDATE categories SET name = ?, type = ?, url = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
-			cat.Name, cat.Type, cat.URL, cat.SortOrder, id,
+			"UPDATE categories SET name = ?, type = ?, url = ?, img_url = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
+			cat.Name, cat.Type, cat.URL, cat.ImgURL, cat.SortOrder, id,
 		)
 	}
 
@@ -150,7 +156,7 @@ func (r *CategoryRepository) Delete(id int) (int64, error) {
 // GetChildren 返回父分类的子分类
 func (r *CategoryRepository) GetChildren(parentID int) ([]models.Category, error) {
 	rows, err := r.db.Query(`
-		SELECT id, name, type, IFNULL(url, ''), parent_id, sort_order, created_at, updated_at 
+		SELECT id, name, type, IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at 
 		FROM categories 
 		WHERE parent_id = ?
 		ORDER BY sort_order ASC, id ASC
@@ -164,7 +170,7 @@ func (r *CategoryRepository) GetChildren(parentID int) ([]models.Category, error
 	for rows.Next() {
 		var cat models.Category
 		var pid sql.NullInt64
-		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.URL, &pid, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
+		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.URL, &cat.ImgURL, &pid, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if pid.Valid {

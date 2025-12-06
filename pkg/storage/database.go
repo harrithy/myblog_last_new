@@ -158,6 +158,28 @@ func InitDB(db *sql.DB) error {
 		}
 	}
 
+	// 为现有的categories表添加img_url字段（如果不存在）
+	var imgUrlColumnExists bool
+	checkImgUrlQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = 'blog' 
+	AND TABLE_NAME = 'categories' 
+	AND COLUMN_NAME = 'img_url';`
+
+	err = db.QueryRow(checkImgUrlQuery).Scan(&imgUrlColumnExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check img_url column: %v\n", err)
+	} else if !imgUrlColumnExists {
+		alterQuery := "ALTER TABLE categories ADD COLUMN img_url VARCHAR(500) DEFAULT NULL AFTER url;"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add img_url column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 img_url 字段到 categories 表")
+		}
+	}
+
 	// Create comments table if it does not exist
 	commentQuery := `
 	CREATE TABLE IF NOT EXISTS comments (
