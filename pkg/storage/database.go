@@ -18,12 +18,106 @@ func InitDB(db *sql.DB) error {
 		email VARCHAR(255) NOT NULL UNIQUE,
 		nickname VARCHAR(255),
 		birthday DATE,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		github_id BIGINT DEFAULT NULL,
+		avatar VARCHAR(500) DEFAULT NULL,
+		account VARCHAR(255) DEFAULT NULL,
+		password VARCHAR(255) DEFAULT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE KEY unique_github_id (github_id),
+		UNIQUE KEY unique_account (account)
 	);`
 
 	_, err := db.Exec(query)
 	if err != nil {
 		return err
+	}
+
+	// 为现有的users表添加github_id字段（如果不存在）
+	var githubIdExists bool
+	checkGithubIdQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = DATABASE() 
+	AND TABLE_NAME = 'users' 
+	AND COLUMN_NAME = 'github_id';`
+
+	err = db.QueryRow(checkGithubIdQuery).Scan(&githubIdExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check github_id column: %v\n", err)
+	} else if !githubIdExists {
+		alterQuery := "ALTER TABLE users ADD COLUMN github_id BIGINT DEFAULT NULL, ADD UNIQUE KEY unique_github_id (github_id);"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add github_id column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 github_id 字段到 users 表")
+		}
+	}
+
+	// 为现有的users表添加avatar字段（如果不存在）
+	var avatarExists bool
+	checkAvatarQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = DATABASE() 
+	AND TABLE_NAME = 'users' 
+	AND COLUMN_NAME = 'avatar';`
+
+	err = db.QueryRow(checkAvatarQuery).Scan(&avatarExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check avatar column: %v\n", err)
+	} else if !avatarExists {
+		alterQuery := "ALTER TABLE users ADD COLUMN avatar VARCHAR(500) DEFAULT NULL;"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add avatar column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 avatar 字段到 users 表")
+		}
+	}
+
+	// 为现有的users表添加account字段（如果不存在）
+	var accountExists bool
+	checkAccountQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = DATABASE() 
+	AND TABLE_NAME = 'users' 
+	AND COLUMN_NAME = 'account';`
+
+	err = db.QueryRow(checkAccountQuery).Scan(&accountExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check account column: %v\n", err)
+	} else if !accountExists {
+		alterQuery := "ALTER TABLE users ADD COLUMN account VARCHAR(255) DEFAULT NULL, ADD UNIQUE KEY unique_account (account);"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add account column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 account 字段到 users 表")
+		}
+	}
+
+	// 为现有的users表添加password字段（如果不存在）
+	var passwordExists bool
+	checkPasswordQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = DATABASE() 
+	AND TABLE_NAME = 'users' 
+	AND COLUMN_NAME = 'password';`
+
+	err = db.QueryRow(checkPasswordQuery).Scan(&passwordExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check password column: %v\n", err)
+	} else if !passwordExists {
+		alterQuery := "ALTER TABLE users ADD COLUMN password VARCHAR(255) DEFAULT NULL;"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add password column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 password 字段到 users 表")
+		}
 	}
 
 	// Create visit_logs table if it does not exist
