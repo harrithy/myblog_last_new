@@ -31,6 +31,9 @@ definitions:
         $ref: '#/definitions/models.CustomTime'
       id:
         type: integer
+      img_url:
+        description: 分类封面图片URL
+        type: string
       name:
         type: string
       parent_id:
@@ -46,6 +49,33 @@ definitions:
       url:
         description: 文章类型时存储文章地址
         type: string
+    type: object
+  models.CreateCommentRequest:
+    properties:
+      article_id:
+        description: 文章ID
+        example: 11
+        type: integer
+      avatar_url:
+        description: 评论者头像（可选）
+        example: https://example.com/avatar.jpg
+        type: string
+      content:
+        description: 评论内容
+        example: 写得很好！
+        type: string
+      email:
+        description: 评论者邮箱（可选）
+        example: zhangsan@example.com
+        type: string
+      nickname:
+        description: 评论者昵称
+        example: 张三
+        type: string
+      parent_id:
+        description: 父评论ID（可选）
+        example: 101
+        type: integer
     type: object
   models.CustomTime:
     properties:
@@ -449,12 +479,20 @@ paths:
       - categories
   /comments:
     get:
-      description: 根据文章ID获取评论列表，返回树形结构
+      description: 根据文章ID获取评论列表，支持分页（针对根评论）
       parameters:
       - description: 文章ID
         in: query
         name: article_id
         required: true
+        type: integer
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量，默认10
+        in: query
+        name: page_size
         type: integer
       produces:
       - application/json
@@ -463,6 +501,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/response.APIResponse'
+      security:
+      - Bearer: []
       summary: 获取文章评论列表
       tags:
       - comments
@@ -476,7 +516,7 @@ paths:
         name: comment
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/models.CreateCommentRequest'
       produces:
       - application/json
       responses:
@@ -484,6 +524,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/response.APIResponse'
+      security:
+      - Bearer: []
       summary: 创建评论
       tags:
       - comments
@@ -503,6 +545,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/response.APIResponse'
+      security:
+      - Bearer: []
       summary: 删除评论
       tags:
       - comments
@@ -606,6 +650,37 @@ paths:
       summary: 获取博客主人访问统计
       tags:
       - owner
+  /upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 将图片上传到图床服务器并返回URL
+      parameters:
+      - description: 图片文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传成功返回图片信息
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: 请求错误
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: 上传失败
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: 代理上传图片到图床
+      tags:
+      - upload
   /users:
     get:
       description: 获取所有已注册用户的列表。

@@ -318,6 +318,28 @@ func InitDB(db *sql.DB) error {
 		return err
 	}
 
+	// 为现有的comments表添加avatar_url字段（如果不存在）
+	var avatarUrlExists bool
+	checkCommentAvatarQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = DATABASE() 
+	AND TABLE_NAME = 'comments' 
+	AND COLUMN_NAME = 'avatar_url';`
+
+	err = db.QueryRow(checkCommentAvatarQuery).Scan(&avatarUrlExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check avatar_url column in comments: %v\n", err)
+	} else if !avatarUrlExists {
+		alterQuery := "ALTER TABLE comments ADD COLUMN avatar_url VARCHAR(500) DEFAULT NULL AFTER email;"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add avatar_url column to comments: %v\n", err)
+		} else {
+			fmt.Println("成功添加 avatar_url 字段到 comments 表")
+		}
+	}
+
 	fmt.Println("数据库表初始化成功!")
 	return nil
 }

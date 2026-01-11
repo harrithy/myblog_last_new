@@ -18,7 +18,7 @@ func NewCommentRepository(db *sql.DB) *CommentRepository {
 // GetByArticleID 返回文章的所有评论
 func (r *CommentRepository) GetByArticleID(articleID int) ([]models.Comment, error) {
 	query := `
-		SELECT id, article_id, parent_id, nickname, email, content, created_at
+		SELECT id, article_id, parent_id, nickname, email, avatar_url, content, created_at
 		FROM comments
 		WHERE article_id = ?
 		ORDER BY created_at ASC
@@ -37,6 +37,7 @@ func (r *CommentRepository) GetByArticleID(articleID int) ([]models.Comment, err
 		var comment models.Comment
 		var parentID sql.NullInt64
 		var email sql.NullString
+		var avatarURL sql.NullString
 
 		err := rows.Scan(
 			&comment.ID,
@@ -44,6 +45,7 @@ func (r *CommentRepository) GetByArticleID(articleID int) ([]models.Comment, err
 			&parentID,
 			&comment.Nickname,
 			&email,
+			&avatarURL,
 			&comment.Content,
 			&comment.CreatedAt,
 		)
@@ -57,6 +59,9 @@ func (r *CommentRepository) GetByArticleID(articleID int) ([]models.Comment, err
 		}
 		if email.Valid {
 			comment.Email = email.String
+		}
+		if avatarURL.Valid {
+			comment.AvatarURL = avatarURL.String
 		}
 
 		comment.Children = []models.Comment{}
@@ -82,6 +87,143 @@ func (r *CommentRepository) GetByArticleID(articleID int) ([]models.Comment, err
 	return result, nil
 }
 
+// GetByArticleIDWithPagination 支持分页获取文章评论
+func (r *CommentRepository) GetByArticleIDWithPagination(articleID, page, pageSize int) ([]models.Comment, int64, error) {
+	// 1. Count root comments
+	var total int64
+	err := r.db.QueryRow("SELECT COUNT(*) FROM comments WHERE article_id = ? AND parent_id IS NULL", articleID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return []models.Comment{}, 0, nil
+	}
+
+	offset := (page - 1) * pageSize
+
+	// 2. Fetch root comments
+	query := `
+		SELECT id, article_id, parent_id, nickname, email, avatar_url, content, created_at
+		FROM comments
+		WHERE article_id = ? AND parent_id IS NULL
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`
+	rows, err := r.db.Query(query, articleID, pageSize, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	commentMap := make(map[int]*models.Comment)
+	var rootComments []*models.Comment
+
+	for rows.Next() {
+		var comment models.Comment
+		var parentID sql.NullInt64
+		var email sql.NullString
+		var avatarURL sql.NullString
+
+		err := rows.Scan(
+			&comment.ID,
+			&comment.ArticleID,
+			&parentID,
+			&comment.Nickname,
+			&email,
+			&avatarURL,
+			&comment.Content,
+			&comment.CreatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if parentID.Valid {
+			pid := int(parentID.Int64)
+			comment.ParentID = &pid
+		}
+		if email.Valid {
+			comment.Email = email.String
+		}
+		if avatarURL.Valid {
+			comment.AvatarURL = avatarURL.String
+		}
+
+		comment.Children = []models.Comment{}
+		// 注意：这里需要复制一份，否则循环变量地址问题
+		c := comment
+		commentMap[comment.ID] = &c
+		rootComments = append(rootComments, &c)
+	}
+
+	// 3. Fetch ALL child comments for the article to build the tree
+	childQuery := `
+		SELECT id, article_id, parent_id, nickname, email, avatar_url, content, created_at
+		FROM comments
+		WHERE article_id = ? AND parent_id IS NOT NULL
+		ORDER BY created_at ASC
+	`
+	childRows, err := r.db.Query(childQuery, articleID)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer childRows.Close()
+
+	for childRows.Next() {
+		var comment models.Comment
+		var parentID sql.NullInt64
+		var email sql.NullString
+		var avatarURL sql.NullString
+
+		err := childRows.Scan(
+			&comment.ID,
+			&comment.ArticleID,
+			&parentID,
+			&comment.Nickname,
+			&email,
+			&avatarURL,
+			&comment.Content,
+			&comment.CreatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if parentID.Valid {
+			pid := int(parentID.Int64)
+			comment.ParentID = &pid
+		}
+		if email.Valid {
+			comment.Email = email.String
+		}
+		if avatarURL.Valid {
+			comment.AvatarURL = avatarURL.String
+		}
+
+		comment.Children = []models.Comment{}
+		c := comment
+		commentMap[comment.ID] = &c
+	}
+
+	// 4. Build Tree
+	for _, comment := range commentMap {
+		if comment.ParentID != nil {
+			if parent, ok := commentMap[*comment.ParentID]; ok {
+				parent.Children = append(parent.Children, *comment)
+			}
+		}
+	}
+
+	// 5. Construct result
+	result := make([]models.Comment, 0, len(rootComments))
+	for _, c := range rootComments {
+		result = append(result, *c)
+	}
+
+	return result, total, nil
+}
+
 // ArticleExists 检查文章是否存在
 func (r *CommentRepository) ArticleExists(articleID int) (bool, error) {
 	var exists bool
@@ -97,19 +239,19 @@ func (r *CommentRepository) ParentCommentExists(parentID, articleID int) (bool, 
 }
 
 // Create 创建新评论
-func (r *CommentRepository) Create(articleID int, parentID *int, nickname, email, content string) (*models.Comment, error) {
+func (r *CommentRepository) Create(articleID int, parentID *int, nickname, email, avatarURL, content string) (*models.Comment, error) {
 	var result sql.Result
 	var err error
 
 	if parentID != nil {
 		result, err = r.db.Exec(
-			"INSERT INTO comments (article_id, parent_id, nickname, email, content) VALUES (?, ?, ?, ?, ?)",
-			articleID, *parentID, nickname, email, content,
+			"INSERT INTO comments (article_id, parent_id, nickname, email, avatar_url, content) VALUES (?, ?, ?, ?, ?, ?)",
+			articleID, *parentID, nickname, email, avatarURL, content,
 		)
 	} else {
 		result, err = r.db.Exec(
-			"INSERT INTO comments (article_id, nickname, email, content) VALUES (?, ?, ?, ?)",
-			articleID, nickname, email, content,
+			"INSERT INTO comments (article_id, nickname, email, avatar_url, content) VALUES (?, ?, ?, ?, ?)",
+			articleID, nickname, email, avatarURL, content,
 		)
 	}
 
@@ -123,11 +265,12 @@ func (r *CommentRepository) Create(articleID int, parentID *int, nickname, email
 	var comment models.Comment
 	var pID sql.NullInt64
 	var em sql.NullString
+	var av sql.NullString
 
 	err = r.db.QueryRow(
-		"SELECT id, article_id, parent_id, nickname, email, content, created_at FROM comments WHERE id = ?",
+		"SELECT id, article_id, parent_id, nickname, email, avatar_url, content, created_at FROM comments WHERE id = ?",
 		id,
-	).Scan(&comment.ID, &comment.ArticleID, &pID, &comment.Nickname, &em, &comment.Content, &comment.CreatedAt)
+	).Scan(&comment.ID, &comment.ArticleID, &pID, &comment.Nickname, &em, &av, &comment.Content, &comment.CreatedAt)
 
 	if err != nil {
 		return nil, err
@@ -139,6 +282,9 @@ func (r *CommentRepository) Create(articleID int, parentID *int, nickname, email
 	}
 	if em.Valid {
 		comment.Email = em.String
+	}
+	if av.Valid {
+		comment.AvatarURL = av.String
 	}
 
 	return &comment, nil

@@ -177,7 +177,7 @@ func registerDualRoutes(
 		})
 
 		// 评论路由
-		router.Handle(prefix+"/comments", func(w http.ResponseWriter, r *http.Request) {
+		router.HandleWithAuth(prefix+"/comments", func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodGet:
 				commentHandler.GetComments(w, r)
@@ -188,7 +188,7 @@ func registerDualRoutes(
 			}
 		})
 
-		router.Handle(prefix+"/comments/", func(w http.ResponseWriter, r *http.Request) {
+		router.HandleWithAuth(prefix+"/comments/", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodDelete {
 				commentHandler.DeleteComment(w, r)
 				return

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"myblog_last_new/internal/repository"
 	"myblog_last_new/internal/response"
+	"myblog_last_new/pkg/models"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,10 +22,13 @@ func NewCommentHandler(repo *repository.CommentRepository) *CommentHandler {
 
 // GetComments godoc
 // @Summary 获取文章评论列表
-// @Description 根据文章ID获取评论列表，返回树形结构
+// @Description 根据文章ID获取评论列表，支持分页（针对根评论）
 // @Tags comments
 // @Produce json
+// @Security Bearer
 // @Param article_id query int true "文章ID"
+// @Param page query int false "页码，默认1"
+// @Param page_size query int false "每页数量，默认10"
 // @Success 200 {object} response.APIResponse
 // @Router /comments [get]
 func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
@@ -40,13 +44,23 @@ func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comments, err := h.repo.GetByArticleID(articleID)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	comments, total, err := h.repo.GetByArticleIDWithPagination(articleID, page, pageSize)
 	if err != nil {
 		response.InternalError(w, "Failed to query comments: "+err.Error())
 		return
 	}
 
-	response.SuccessWithPage(w, comments, int64(len(comments)), 1)
+	response.SuccessWithPage(w, comments, total, page)
 }
 
 // CreateComment godoc
@@ -55,17 +69,12 @@ func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
 // @Tags comments
 // @Accept json
 // @Produce json
-// @Param comment body object true "评论信息"
+// @Security Bearer
+// @Param comment body models.CreateCommentRequest true "评论信息"
 // @Success 200 {object} response.APIResponse
 // @Router /comments [post]
 func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		ArticleID int    `json:"article_id"`
-		ParentID  *int   `json:"parent_id"`
-		Nickname  string `json:"nickname"`
-		Email     string `json:"email"`
-		Content   string `json:"content"`
-	}
+	var input models.CreateCommentRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		response.BadRequest(w, "Invalid request body")
@@ -101,7 +110,7 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	comment, err := h.repo.Create(input.ArticleID, input.ParentID, input.Nickname, input.Email, input.Content)
+	comment, err := h.repo.Create(input.ArticleID, input.ParentID, input.Nickname, input.Email, input.AvatarURL, input.Content)
 	if err != nil {
 		response.InternalError(w, "Failed to create comment: "+err.Error())
 		return
@@ -115,6 +124,7 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 // @Description 根据ID删除评论
 // @Tags comments
 // @Produce json
+// @Security Bearer
 // @Param id path int true "评论ID"
 // @Success 200 {object} response.APIResponse
 // @Router /comments/{id} [delete]

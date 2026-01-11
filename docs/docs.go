@@ -533,7 +533,12 @@ const docTemplate = `{
         },
         "/comments": {
             "get": {
-                "description": "根据文章ID获取评论列表，返回树形结构",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "根据文章ID获取评论列表，支持分页（针对根评论）",
                 "produces": [
                     "application/json"
                 ],
@@ -548,6 +553,18 @@ const docTemplate = `{
                         "name": "article_id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码，默认1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量，默认10",
+                        "name": "page_size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -560,6 +577,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "为文章创建评论，支持回复其他评论",
                 "consumes": [
                     "application/json"
@@ -578,7 +600,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/models.CreateCommentRequest"
                         }
                     }
                 ],
@@ -594,6 +616,11 @@ const docTemplate = `{
         },
         "/comments/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "根据ID删除评论",
                 "produces": [
                     "application/json"
@@ -783,6 +810,53 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/upload": {
+            "post": {
+                "description": "将图片上传到图床服务器并返回URL",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "代理上传图片到图床",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "图片文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "上传成功返回图片信息",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "请求错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "上传失败",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -993,6 +1067,10 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "img_url": {
+                    "description": "分类封面图片URL",
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -1013,6 +1091,41 @@ const docTemplate = `{
                 "url": {
                     "description": "文章类型时存储文章地址",
                     "type": "string"
+                }
+            }
+        },
+        "models.CreateCommentRequest": {
+            "type": "object",
+            "properties": {
+                "article_id": {
+                    "description": "文章ID",
+                    "type": "integer",
+                    "example": 11
+                },
+                "avatar_url": {
+                    "description": "评论者头像（可选）",
+                    "type": "string",
+                    "example": "https://example.com/avatar.jpg"
+                },
+                "content": {
+                    "description": "评论内容",
+                    "type": "string",
+                    "example": "写得很好！"
+                },
+                "email": {
+                    "description": "评论者邮箱（可选）",
+                    "type": "string",
+                    "example": "zhangsan@example.com"
+                },
+                "nickname": {
+                    "description": "评论者昵称",
+                    "type": "string",
+                    "example": "张三"
+                },
+                "parent_id": {
+                    "description": "父评论ID（可选）",
+                    "type": "integer",
+                    "example": 101
                 }
             }
         },
