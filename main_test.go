@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"myblog_last_new/pkg/api"
+	"myblog_last_new/internal/router"
 	"myblog_last_new/pkg/models"
 	"myblog_last_new/pkg/storage"
 	"net/http"
@@ -31,11 +31,11 @@ func TestAddUser(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	api.RegisterRoutes(mux, db)
+	router.RegisterRoutes(mux, db)
 
 	// Login to get a token
 	loginCreds := models.User{
-		Email: "test@example.com",
+		Account: "test@example.com",
 	}
 	loginBody, _ := json.Marshal(loginCreds)
 	loginReq, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(loginBody))
@@ -58,7 +58,7 @@ func TestAddUser(t *testing.T) {
 	// Test case
 	user := models.User{
 		Name:     "newuser",
-		Email:    "new@example.com",
+		Account:  "new@example.com",
 		Nickname: "newbie",
 		Birthday: "2001-01-01",
 	}

@@ -58,6 +58,7 @@
 验证用户身份并返回 JWT 令牌。
 
 **请求体：**
+
 ```json
 {
   "account": "user@example.com",
@@ -66,6 +67,7 @@
 ```
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -83,6 +85,7 @@
 ```
 
 **错误响应：**
+
 - `400` - 无效的请求体
 - `401` - 未找到用户
 
@@ -97,6 +100,7 @@
 获取所有已注册用户的列表。
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -121,11 +125,13 @@
 创建一个新用户。**需要身份验证（JWT Token）**。
 
 **请求头：**
+
 ```
 Authorization: Bearer <token>
 ```
 
 **请求体：**
+
 ```json
 {
   "name": "用户名",
@@ -158,6 +164,7 @@ Authorization: Bearer <token>
 | pagesize | int | 否 | 每页数量，默认10 |
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -192,6 +199,7 @@ Authorization: Bearer <token>
 | id | int | 是 | 博客ID |
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -210,6 +218,7 @@ Authorization: Bearer <token>
 ```
 
 **错误响应：**
+
 - `400` - 参数错误
 - `404` - 博客不存在
 
@@ -224,6 +233,7 @@ Authorization: Bearer <token>
 创建一个新的分类，可以是顶级分类或子分类。
 
 **请求体：**
+
 ```json
 {
   "name": "技术",           // 必传，分类名称
@@ -235,6 +245,7 @@ Authorization: Bearer <token>
 ```
 
 **成功响应：** `201 Created`
+
 ```json
 {
   "code": 200,
@@ -250,6 +261,7 @@ Authorization: Bearer <token>
 ```
 
 **错误响应：**
+
 - `400` - 参数错误（名称为空、类型无效、父分类不存在）
 
 ### 获取分类列表
@@ -268,6 +280,7 @@ Authorization: Bearer <token>
 | keyword | string | 否 | 标题模糊搜索关键词 |
 
 **响应示例（树形结构）：**
+
 ```json
 {
   "code": 200,
@@ -308,6 +321,7 @@ Authorization: Bearer <token>
 | id | int | 是 | 分类ID |
 
 **错误响应：**
+
 - `400` - 参数错误
 - `404` - 分类不存在
 
@@ -324,6 +338,7 @@ Authorization: Bearer <token>
 | id | int | 是 | 分类ID |
 
 **请求体：**
+
 ```json
 {
   "name": "新名称",         // 必传
@@ -334,6 +349,7 @@ Authorization: Bearer <token>
 ```
 
 **错误响应：**
+
 - `400` - 参数错误（名称为空、不能设置自己为父分类）
 - `404` - 分类不存在
 
@@ -350,6 +366,7 @@ Authorization: Bearer <token>
 | id | int | 是 | 分类ID |
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -379,6 +396,7 @@ Authorization: Bearer <token>
 | article_id | int | 是 | 文章ID |
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -417,6 +435,7 @@ Authorization: Bearer <token>
 为文章创建评论，支持回复其他评论。
 
 **请求体：**
+
 ```json
 {
   "article_id": 10,         // 必传，文章ID
@@ -428,6 +447,7 @@ Authorization: Bearer <token>
 ```
 
 **错误响应：**
+
 - `400` - 参数错误（缺少必填字段、文章不存在、父评论不存在）
 
 ### 删除评论
@@ -443,6 +463,7 @@ Authorization: Bearer <token>
 | id | int | 是 | 评论ID |
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -464,6 +485,7 @@ Authorization: Bearer <token>
 记录一次新的用户访问。
 
 **请求体：**
+
 ```json
 {
   "user_nickname": "访客",           // 可选
@@ -488,6 +510,7 @@ Authorization: Bearer <token>
 | pagesize | int | 否 | 每页数量，默认10 |
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -517,6 +540,7 @@ Authorization: Bearer <token>
 记录访客进入网站的时间和内容信息。
 
 **请求体：**
+
 ```json
 {
   "entry_time": "2025-01-01 12:00:00", // 必传
@@ -525,6 +549,7 @@ Authorization: Bearer <token>
 ```
 
 **成功响应：** `201 Created`
+
 ```json
 {
   "code": 200,
@@ -555,6 +580,7 @@ Authorization: Bearer <token>
 | days | int | 否 | 获取最近多少天的数据，默认7天 |
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -579,6 +605,7 @@ Authorization: Bearer <token>
 获取博客主人今天的访问次数统计。
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -601,6 +628,7 @@ Authorization: Bearer <token>
 返回 GitHub OAuth 授权页面的 URL。
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -624,6 +652,7 @@ Authorization: Bearer <token>
 | code | string | 是 | GitHub 授权码 |
 
 **成功响应：**
+
 ```json
 {
   "code": 200,
@@ -648,6 +677,7 @@ Authorization: Bearer <token>
 前端传递 GitHub 授权码，后端处理登录/注册。
 
 **请求体：**
+
 ```json
 {
   "code": "github_authorization_code"
@@ -663,11 +693,13 @@ Authorization: Bearer <token>
 ### 1. 基本原则
 
 ### 1.1 RESTful 设计
+
 - 使用标准 HTTP 方法：GET（查询）、POST（创建）、PUT（更新）、DELETE（删除）
 - 使用名词作为资源路径，避免动词
 - 使用复数形式：`/users`、`/visits`、`/guests`
 
 ### 1.2 统一响应格式
+
 所有接口必须使用统一的 `APIResponse` 格式：
 
 ```json
@@ -681,6 +713,7 @@ Authorization: Bearer <token>
 ```
 
 ### 1.3 HTTP 状态码
+
 - `200` - 成功
 - `201` - 创建成功
 - `400` - 请求参数错误
@@ -728,11 +761,13 @@ Authorization: Bearer <token>
 ## 3. 参数规范
 
 ### 3.1 路径参数
+
 ```go
 // @Param   id   path    int     true  "用户ID"
 ```
 
 ### 3.2 查询参数
+
 ```go
 // @Param   page   query    int     false  "页码，默认1"
 // @Param   size   query    int     false  "每页数量，默认10"
@@ -740,11 +775,13 @@ Authorization: Bearer <token>
 ```
 
 ### 3.3 请求体参数
+
 ```go
 // @Param   user   body    models.User   true  "用户信息"
 ```
 
 ### 3.4 Header 参数
+
 ```go
 // @Param   Authorization   header    string  true  "Bearer token"
 ```
@@ -752,11 +789,13 @@ Authorization: Bearer <token>
 ## 4. 响应规范
 
 ### 4.1 成功响应
+
 ```go
 // @Success 200 {object} models.APIResponse "操作成功"
 ```
 
 ### 4.2 错误响应
+
 ```go
 // @Failure 400 {object} models.APIResponse "参数错误"
 // @Failure 401 {object} models.APIResponse "未授权"
@@ -764,6 +803,7 @@ Authorization: Bearer <token>
 ```
 
 ### 4.3 分页响应
+
 ```go
 // @Success 200 {object} models.APIResponse{data=[]models.User,total=int,page=int} "用户列表"
 ```
@@ -771,6 +811,7 @@ Authorization: Bearer <token>
 ## 5. 代码实现规范
 
 ### 5.1 错误处理
+
 ```go
 func Handler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
     // 参数验证
@@ -801,6 +842,7 @@ func Handler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 ```
 
 ### 5.2 参数验证
+
 ```go
 // 必填参数验证
 if req.RequiredField == "" {
@@ -818,14 +860,17 @@ if !isValidEmail(req.Email) {
 ## 6. 命名规范
 
 ### 6.1 接口命名
+
 - 使用动词+名词：`GetUsers`、`CreateUser`、`UpdateUser`
 - 遵循 Go 命名规范：首字母大写（公开）
 
 ### 6.2 路由命名
+
 - 使用小写+连字符：`/user-profile`、`/visit-logs`
 - 资源名使用复数：`/users`、`/visits`
 
 ### 6.3 模型命名
+
 - 使用大驼峰：`User`、`VisitLog`、`GuestRecord`
 - 响应模型添加后缀：`UserResponse`、`UserRequest`
 
@@ -888,11 +933,13 @@ func Login(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 ## 8. 测试规范
 
 ### 8.1 单元测试
+
 - 每个接口函数都要有对应的单元测试
 - 测试文件命名：`handler_test.go`
 - 测试函数命名：`TestFunctionName`
 
 ### 8.2 集成测试
+
 - 测试完整的请求-响应流程
 - 使用测试数据库
 - 测试边界条件和错误场景
@@ -900,11 +947,13 @@ func Login(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 ## 9. 版本控制
 
 ### 9.1 API 版本
+
 - 在路由中添加版本号：`/api/v1/users`
 - 向后兼容原则
 - 废弃接口要提前通知
 
 ### 9.2 文档版本
+
 - 每次接口变更都要更新文档
 - 记录变更日志
 - 标注废弃和新增的接口

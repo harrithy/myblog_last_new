@@ -53,7 +53,7 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	categoryHandler := handler.NewCategoryHandler(categoryRepo)
 	visitHandler := handler.NewVisitHandler(visitRepo, guestRepo, ownerRepo)
 	commentHandler := handler.NewCommentHandler(commentRepo)
-	githubAuthHandler := handler.NewGitHubAuthHandler(userRepo)
+	githubAuthHandler := handler.NewGitHubAuthHandler(userRepo, ownerRepo)
 	uploadHandler := handler.NewUploadHandler()
 
 	// 注册 /path 和 /api/path 两种路径模式的路由

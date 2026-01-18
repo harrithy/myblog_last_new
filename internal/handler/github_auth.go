@@ -22,17 +22,22 @@ type GitHubConfig struct {
 	RedirectURI  string
 }
 
+// OwnerGitHubID 博主的 GitHub ID
+const OwnerGitHubID int64 = 156180607
+
 // GitHubAuthHandler 处理 GitHub OAuth 认证
 type GitHubAuthHandler struct {
-	userRepo *repository.UserRepository
-	config   GitHubConfig
+	userRepo  *repository.UserRepository
+	ownerRepo *repository.OwnerVisitRepository
+	config    GitHubConfig
 }
 
 // NewGitHubAuthHandler 创建新的 GitHubAuthHandler
 // 需要设置环境变量: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_REDIRECT_URI
-func NewGitHubAuthHandler(userRepo *repository.UserRepository) *GitHubAuthHandler {
+func NewGitHubAuthHandler(userRepo *repository.UserRepository, ownerRepo *repository.OwnerVisitRepository) *GitHubAuthHandler {
 	return &GitHubAuthHandler{
-		userRepo: userRepo,
+		userRepo:  userRepo,
+		ownerRepo: ownerRepo,
 		config: GitHubConfig{
 			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
@@ -108,6 +113,16 @@ func (h *GitHubAuthHandler) GitHubCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// 检查是否是博主登录，记录访问统计
+	isOwner := githubUser.ID == OwnerGitHubID
+	if isOwner {
+		go func() {
+			if err := h.ownerRepo.RecordVisit(); err != nil {
+				fmt.Printf("Failed to record owner visit: %v\n", err)
+			}
+		}()
+	}
+
 	// 生成 JWT token
 	tokenString, err := middleware.GenerateJWT(user.Account)
 	if err != nil {
@@ -115,10 +130,14 @@ func (h *GitHubAuthHandler) GitHubCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	response.Success(w, map[string]interface{}{
+	responseData := map[string]interface{}{
 		"token": tokenString,
 		"user":  user,
-	})
+	}
+	if isOwner {
+		responseData["is_owner"] = true
+	}
+	response.Success(w, responseData)
 }
 
 // GitHubCallbackWithCode godoc
@@ -167,6 +186,16 @@ func (h *GitHubAuthHandler) GitHubCallbackWithCode(w http.ResponseWriter, r *htt
 		return
 	}
 
+	// 检查是否是博主登录，记录访问统计
+	isOwner := githubUser.ID == OwnerGitHubID
+	if isOwner {
+		go func() {
+			if err := h.ownerRepo.RecordVisit(); err != nil {
+				fmt.Printf("Failed to record owner visit: %v\n", err)
+			}
+		}()
+	}
+
 	// 生成 JWT token
 	tokenString, err := middleware.GenerateJWT(user.Account)
 	if err != nil {
@@ -174,10 +203,14 @@ func (h *GitHubAuthHandler) GitHubCallbackWithCode(w http.ResponseWriter, r *htt
 		return
 	}
 
-	response.Success(w, map[string]interface{}{
+	responseData := map[string]interface{}{
 		"token": tokenString,
 		"user":  user,
-	})
+	}
+	if isOwner {
+		responseData["is_owner"] = true
+	}
+	response.Success(w, responseData)
 }
 
 // exchangeCodeForToken 用授权码换取 access token

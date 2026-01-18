@@ -1,12 +1,31 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
+
+// APIResponse 定义标准的 API 响应格式
+type APIResponse struct {
+	Code int         `json:"code"`
+	Data interface{} `json:"data"`
+	Msg  string      `json:"msg"`
+}
+
+// jsonError 发送 JSON 格式的错误响应
+func jsonError(w http.ResponseWriter, statusCode int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(APIResponse{
+		Code: statusCode,
+		Data: nil,
+		Msg:  msg,
+	})
+}
 
 var jwtKey = []byte("my_secret_key")
 
@@ -37,7 +56,7 @@ func Auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			http.Error(w, "Missing token", http.StatusUnauthorized)
+			jsonError(w, http.StatusUnauthorized, "Missing token")
 			return
 		}
 
@@ -49,7 +68,7 @@ func Auth(next http.HandlerFunc) http.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			jsonError(w, http.StatusUnauthorized, "Invalid token")
 			return
 		}
 
