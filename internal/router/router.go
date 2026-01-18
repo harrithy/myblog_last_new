@@ -221,6 +221,15 @@ func registerDualRoutes(
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		})
 
+		// GitHub 仓库路由
+		router.Handle(prefix+"/github/repos", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				githubAuthHandler.GetOwnerRepos(w, r)
+				return
+			}
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		})
+
 		// 图片上传代理路由
 		router.Handle(prefix+"/upload", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {

@@ -1,5 +1,44 @@
 basePath: /
 definitions:
+  handler.GitHubRepo:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      fork:
+        type: boolean
+      forks_count:
+        type: integer
+      full_name:
+        type: string
+      homepage:
+        type: string
+      html_url:
+        type: string
+      id:
+        type: integer
+      language:
+        type: string
+      name:
+        type: string
+      open_issues_count:
+        type: integer
+      private:
+        type: boolean
+      pushed_at:
+        type: string
+      stargazers_count:
+        type: integer
+      topics:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+      watchers_count:
+        type: integer
+    type: object
   models.Blog:
     properties:
       category_id:
@@ -550,6 +589,37 @@ paths:
       summary: 删除评论
       tags:
       - comments
+  /github/repos:
+    get:
+      description: 获取博主 GitHub 账号下的所有公开仓库
+      parameters:
+      - default: updated
+        description: '排序方式: created, updated, pushed, full_name'
+        in: query
+        name: sort
+        type: string
+      - default: 30
+        description: 每页数量
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/handler.GitHubRepo'
+                  type: array
+              type: object
+      summary: 获取博主的 GitHub 开源项目
+      tags:
+      - github
   /guest:
     post:
       consumes:

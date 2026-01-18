@@ -642,6 +642,57 @@
                 }
             }
         },
+        "/github/repos": {
+            "get": {
+                "description": "获取博主 GitHub 账号下的所有公开仓库",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "github"
+                ],
+                "summary": "获取博主的 GitHub 开源项目",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "updated",
+                        "description": "排序方式: created, updated, pushed, full_name",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "每页数量",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/handler.GitHubRepo"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/guest": {
             "post": {
                 "description": "记录访客进入网站的时间和内容信息",
@@ -1015,6 +1066,65 @@
         }
     },
     "definitions": {
+        "handler.GitHubRepo": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "fork": {
+                    "type": "boolean"
+                },
+                "forks_count": {
+                    "type": "integer"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "homepage": {
+                    "type": "string"
+                },
+                "html_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "open_issues_count": {
+                    "type": "integer"
+                },
+                "private": {
+                    "type": "boolean"
+                },
+                "pushed_at": {
+                    "type": "string"
+                },
+                "stargazers_count": {
+                    "type": "integer"
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "watchers_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Blog": {
             "type": "object",
             "properties": {

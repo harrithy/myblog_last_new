@@ -288,3 +288,96 @@ func (h *GitHubAuthHandler) getGitHubUser(accessToken string) (*models.GitHubUse
 
 	return &user, nil
 }
+
+// OwnerGitHubUsername 博主的 GitHub 用户名
+const OwnerGitHubUsername = "harrithy"
+
+// GitHubRepo GitHub 仓库信息
+type GitHubRepo struct {
+	ID          int64    `json:"id"`
+	Name        string   `json:"name"`
+	FullName    string   `json:"full_name"`
+	Description string   `json:"description"`
+	HTMLURL     string   `json:"html_url"`
+	Homepage    string   `json:"homepage"`
+	Language    string   `json:"language"`
+	Stars       int      `json:"stargazers_count"`
+	Forks       int      `json:"forks_count"`
+	Watchers    int      `json:"watchers_count"`
+	OpenIssues  int      `json:"open_issues_count"`
+	CreatedAt   string   `json:"created_at"`
+	UpdatedAt   string   `json:"updated_at"`
+	PushedAt    string   `json:"pushed_at"`
+	Fork        bool     `json:"fork"`
+	Private     bool     `json:"private"`
+	Topics      []string `json:"topics"`
+}
+
+// GetOwnerRepos godoc
+// @Summary 获取博主的 GitHub 开源项目
+// @Description 获取博主 GitHub 账号下的所有公开仓库
+// @Tags github
+// @Produce json
+// @Param sort query string false "排序方式: created, updated, pushed, full_name" default(updated)
+// @Param per_page query int false "每页数量" default(30)
+// @Success 200 {object} response.APIResponse{data=[]GitHubRepo}
+// @Router /github/repos [get]
+func (h *GitHubAuthHandler) GetOwnerRepos(w http.ResponseWriter, r *http.Request) {
+	sort := r.URL.Query().Get("sort")
+	if sort == "" {
+		sort = "updated"
+	}
+
+	perPage := r.URL.Query().Get("per_page")
+	if perPage == "" {
+		perPage = "30"
+	}
+
+	apiURL := fmt.Sprintf(
+		"https://api.github.com/users/%s/repos?sort=%s&per_page=%s&type=owner",
+		OwnerGitHubUsername, sort, perPage,
+	)
+
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		response.InternalError(w, "Failed to create request: "+err.Error())
+		return
+	}
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "MyBlog-App")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		response.InternalError(w, "Failed to fetch repos: "+err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		response.InternalError(w, "Failed to read response: "+err.Error())
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		response.Error(w, resp.StatusCode, resp.StatusCode, "GitHub API error: "+string(body))
+		return
+	}
+
+	var repos []GitHubRepo
+	if err := json.Unmarshal(body, &repos); err != nil {
+		response.InternalError(w, "Failed to parse repos: "+err.Error())
+		return
+	}
+
+	// 过滤掉 fork 的仓库，只返回原创项目
+	var originalRepos []GitHubRepo
+	for _, repo := range repos {
+		if !repo.Fork && !repo.Private {
+			originalRepos = append(originalRepos, repo)
+		}
+	}
+
+	response.Success(w, originalRepos)
+}
