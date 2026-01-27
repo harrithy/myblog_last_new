@@ -163,6 +163,15 @@ func registerDualRoutes(
 			}
 		})
 
+		// 热门标签路由（不需要token）
+		router.Handle(prefix+"/categories/hot-tags", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				categoryHandler.GetHotTags(w, r)
+				return
+			}
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		})
+
 		router.Handle(prefix+"/categories/", func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodGet:

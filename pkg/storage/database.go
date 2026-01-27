@@ -297,6 +297,50 @@ func InitDB(db *sql.DB) error {
 		}
 	}
 
+	// 为现有的categories表添加description字段（如果不存在）
+	var descColumnExists bool
+	checkDescQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = DATABASE() 
+	AND TABLE_NAME = 'categories' 
+	AND COLUMN_NAME = 'description';`
+
+	err = db.QueryRow(checkDescQuery).Scan(&descColumnExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check description column: %v\n", err)
+	} else if !descColumnExists {
+		alterQuery := "ALTER TABLE categories ADD COLUMN description TEXT DEFAULT NULL AFTER type;"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add description column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 description 字段到 categories 表")
+		}
+	}
+
+	// 为现有的categories表添加tags字段（如果不存在）
+	var tagsColumnExists bool
+	checkTagsQuery := `
+	SELECT COUNT(*) 
+	FROM INFORMATION_SCHEMA.COLUMNS 
+	WHERE TABLE_SCHEMA = DATABASE() 
+	AND TABLE_NAME = 'categories' 
+	AND COLUMN_NAME = 'tags';`
+
+	err = db.QueryRow(checkTagsQuery).Scan(&tagsColumnExists)
+	if err != nil {
+		fmt.Printf("Warning: Failed to check tags column: %v\n", err)
+	} else if !tagsColumnExists {
+		alterQuery := "ALTER TABLE categories ADD COLUMN tags TEXT DEFAULT NULL AFTER description;"
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			fmt.Printf("Warning: Failed to add tags column: %v\n", err)
+		} else {
+			fmt.Println("成功添加 tags 字段到 categories 表")
+		}
+	}
+
 	// Create comments table if it does not exist
 	commentQuery := `
 	CREATE TABLE IF NOT EXISTS comments (

@@ -90,16 +90,18 @@ type Blog struct {
 
 // Category defines category model with parent-child relationship
 type Category struct {
-	ID        int        `json:"id"`
-	Name      string     `json:"name"`
-	Type      string     `json:"type"`                // folder=文件夹, article=文章
-	URL       string     `json:"url,omitempty"`       // 文章类型时存储文章地址
-	ImgURL    string     `json:"img_url,omitempty"`   // 分类封面图片URL
-	ParentID  *int       `json:"parent_id,omitempty"` // nil表示顶级分类
-	SortOrder int        `json:"sort_order"`
-	CreatedAt CustomTime `json:"created_at"`
-	UpdatedAt CustomTime `json:"updated_at"`
-	Children  []Category `json:"children,omitempty"` // 子分类列表，查询时填充
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	Type        string     `json:"type"`                  // folder=文件夹, article=文章
+	Description string     `json:"description,omitempty"` // 分类描述
+	Tags        []string   `json:"tags,omitempty"`        // 分类标签
+	URL         string     `json:"url,omitempty"`         // 文章类型时存储文章地址
+	ImgURL      string     `json:"img_url,omitempty"`     // 分类封面图片URL
+	ParentID    *int       `json:"parent_id,omitempty"`   // nil表示顶级分类
+	SortOrder   int        `json:"sort_order"`
+	CreatedAt   CustomTime `json:"created_at"`
+	UpdatedAt   CustomTime `json:"updated_at"`
+	Children    []Category `json:"children,omitempty"` // 子分类列表，查询时填充
 }
 
 // Comment defines comment model with parent-child relationship

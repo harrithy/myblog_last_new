@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"myblog_last_new/pkg/models"
 )
 
@@ -22,9 +23,84 @@ type CategoryFilter struct {
 	Keyword  string // 标题模糊搜索关键词
 }
 
+// parseTags 解析 JSON 格式的标签
+func parseTags(tagsJSON string) []string {
+	if tagsJSON == "" {
+		return nil
+	}
+	var tags []string
+	if err := json.Unmarshal([]byte(tagsJSON), &tags); err != nil {
+		return nil
+	}
+	return tags
+}
+
+// tagsToJSON 将标签转换为 JSON 格式
+func tagsToJSON(tags []string) string {
+	if len(tags) == 0 {
+		return ""
+	}
+	data, err := json.Marshal(tags)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// HotTag 表示热门标签
+type HotTag struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
+
+// GetHotTags 获取热门标签（使用次数前 N 个）
+func (r *CategoryRepository) GetHotTags(limit int) ([]HotTag, error) {
+	// 查询所有分类的标签
+	rows, err := r.db.Query("SELECT IFNULL(tags, '') FROM categories WHERE tags IS NOT NULL AND tags != ''")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// 统计标签使用次数
+	tagCount := make(map[string]int)
+	for rows.Next() {
+		var tagsJSON string
+		if err := rows.Scan(&tagsJSON); err != nil {
+			continue
+		}
+		tags := parseTags(tagsJSON)
+		for _, tag := range tags {
+			tagCount[tag]++
+		}
+	}
+
+	// 转换为切片并排序
+	var hotTags []HotTag
+	for name, count := range tagCount {
+		hotTags = append(hotTags, HotTag{Name: name, Count: count})
+	}
+
+	// 按使用次数降序排序
+	for i := 0; i < len(hotTags)-1; i++ {
+		for j := i + 1; j < len(hotTags); j++ {
+			if hotTags[j].Count > hotTags[i].Count {
+				hotTags[i], hotTags[j] = hotTags[j], hotTags[i]
+			}
+		}
+	}
+
+	// 取前 limit 个
+	if len(hotTags) > limit {
+		hotTags = hotTags[:limit]
+	}
+
+	return hotTags, nil
+}
+
 // GetAll 返回所有分类，支持可选过滤
 func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, error) {
-	query := "SELECT id, name, type, IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at FROM categories WHERE 1=1"
+	query := "SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at FROM categories WHERE 1=1"
 	var args []interface{}
 
 	if filter.ParentID != nil {
@@ -54,13 +130,15 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, e
 	for rows.Next() {
 		var cat models.Category
 		var parentID sql.NullInt64
-		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.URL, &cat.ImgURL, &parentID, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
+		var tagsJSON string
+		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.Description, &tagsJSON, &cat.URL, &cat.ImgURL, &parentID, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if parentID.Valid {
 			pid := int(parentID.Int64)
 			cat.ParentID = &pid
 		}
+		cat.Tags = parseTags(tagsJSON)
 		categories = append(categories, cat)
 	}
 
@@ -71,11 +149,12 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, e
 func (r *CategoryRepository) GetByID(id int) (*models.Category, error) {
 	var category models.Category
 	var parentID sql.NullInt64
+	var tagsJSON string
 
 	err := r.db.QueryRow(`
-		SELECT id, name, type, IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at 
+		SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at 
 		FROM categories WHERE id = ?
-	`, id).Scan(&category.ID, &category.Name, &category.Type, &category.URL, &category.ImgURL, &parentID, &category.SortOrder, &category.CreatedAt, &category.UpdatedAt)
+	`, id).Scan(&category.ID, &category.Name, &category.Type, &category.Description, &tagsJSON, &category.URL, &category.ImgURL, &parentID, &category.SortOrder, &category.CreatedAt, &category.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -85,6 +164,7 @@ func (r *CategoryRepository) GetByID(id int) (*models.Category, error) {
 		pid := int(parentID.Int64)
 		category.ParentID = &pid
 	}
+	category.Tags = parseTags(tagsJSON)
 
 	return &category, nil
 }
@@ -101,15 +181,17 @@ func (r *CategoryRepository) Create(cat *models.Category) (int64, error) {
 	var result sql.Result
 	var err error
 
+	tagsJSON := tagsToJSON(cat.Tags)
+
 	if cat.ParentID != nil {
 		result, err = r.db.Exec(
-			"INSERT INTO categories (name, type, url, img_url, parent_id, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
-			cat.Name, cat.Type, cat.URL, cat.ImgURL, *cat.ParentID, cat.SortOrder,
+			"INSERT INTO categories (name, type, description, tags, url, img_url, parent_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			cat.Name, cat.Type, cat.Description, tagsJSON, cat.URL, cat.ImgURL, *cat.ParentID, cat.SortOrder,
 		)
 	} else {
 		result, err = r.db.Exec(
-			"INSERT INTO categories (name, type, url, img_url, sort_order) VALUES (?, ?, ?, ?, ?)",
-			cat.Name, cat.Type, cat.URL, cat.ImgURL, cat.SortOrder,
+			"INSERT INTO categories (name, type, description, tags, url, img_url, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
+			cat.Name, cat.Type, cat.Description, tagsJSON, cat.URL, cat.ImgURL, cat.SortOrder,
 		)
 	}
 
@@ -125,15 +207,17 @@ func (r *CategoryRepository) Update(id int, cat *models.Category) (int64, error)
 	var result sql.Result
 	var err error
 
+	tagsJSON := tagsToJSON(cat.Tags)
+
 	if cat.ParentID != nil {
 		result, err = r.db.Exec(
-			"UPDATE categories SET name = ?, type = ?, url = ?, img_url = ?, parent_id = ?, sort_order = ? WHERE id = ?",
-			cat.Name, cat.Type, cat.URL, cat.ImgURL, *cat.ParentID, cat.SortOrder, id,
+			"UPDATE categories SET name = ?, type = ?, description = ?, tags = ?, url = ?, img_url = ?, parent_id = ?, sort_order = ? WHERE id = ?",
+			cat.Name, cat.Type, cat.Description, tagsJSON, cat.URL, cat.ImgURL, *cat.ParentID, cat.SortOrder, id,
 		)
 	} else {
 		result, err = r.db.Exec(
-			"UPDATE categories SET name = ?, type = ?, url = ?, img_url = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
-			cat.Name, cat.Type, cat.URL, cat.ImgURL, cat.SortOrder, id,
+			"UPDATE categories SET name = ?, type = ?, description = ?, tags = ?, url = ?, img_url = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
+			cat.Name, cat.Type, cat.Description, tagsJSON, cat.URL, cat.ImgURL, cat.SortOrder, id,
 		)
 	}
 
@@ -156,7 +240,7 @@ func (r *CategoryRepository) Delete(id int) (int64, error) {
 // GetChildren 返回父分类的子分类
 func (r *CategoryRepository) GetChildren(parentID int) ([]models.Category, error) {
 	rows, err := r.db.Query(`
-		SELECT id, name, type, IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at 
+		SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at 
 		FROM categories 
 		WHERE parent_id = ?
 		ORDER BY sort_order ASC, id ASC
@@ -170,13 +254,15 @@ func (r *CategoryRepository) GetChildren(parentID int) ([]models.Category, error
 	for rows.Next() {
 		var cat models.Category
 		var pid sql.NullInt64
-		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.URL, &cat.ImgURL, &pid, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
+		var tagsJSON string
+		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.Description, &tagsJSON, &cat.URL, &cat.ImgURL, &pid, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if pid.Valid {
 			p := int(pid.Int64)
 			cat.ParentID = &p
 		}
+		cat.Tags = parseTags(tagsJSON)
 		// Recursively get children
 		subChildren, _ := r.GetChildren(cat.ID)
 		if len(subChildren) > 0 {

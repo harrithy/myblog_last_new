@@ -257,3 +257,26 @@ func (h *CategoryHandler) extractID(path, prefix string) string {
 	path = strings.TrimPrefix(path, "/api")
 	return strings.TrimPrefix(path, prefix)
 }
+
+// GetHotTags godoc
+// @Summary 获取热门标签
+// @Description 获取使用次数前6的标签
+// @Tags categories
+// @Produce  json
+// @Success 200 {object} response.APIResponse{data=[]repository.HotTag}
+// @Failure 500 {object} response.APIResponse "查询失败"
+// @Router /categories/hot-tags [get]
+func (h *CategoryHandler) GetHotTags(w http.ResponseWriter, r *http.Request) {
+	hotTags, err := h.repo.GetHotTags(6)
+	if err != nil {
+		response.InternalError(w, "获取热门标签失败: "+err.Error())
+		return
+	}
+
+	// 确保返回空数组而不是 null
+	if hotTags == nil {
+		hotTags = []repository.HotTag{}
+	}
+
+	response.Success(w, hotTags)
+}

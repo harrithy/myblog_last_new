@@ -376,6 +376,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/categories/hot-tags": {
+            "get": {
+                "description": "获取使用次数前6的标签",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "获取热门标签",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/repository.HotTag"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/categories/{id}": {
             "get": {
                 "description": "根据ID获取分类详情，包含子分类",
@@ -1174,6 +1215,10 @@ const docTemplate = `{
                 "created_at": {
                     "$ref": "#/definitions/models.CustomTime"
                 },
+                "description": {
+                    "description": "分类描述",
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -1190,6 +1235,13 @@ const docTemplate = `{
                 },
                 "sort_order": {
                     "type": "integer"
+                },
+                "tags": {
+                    "description": "分类标签",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "type": {
                     "description": "folder=文件夹, article=文章",
@@ -1323,6 +1375,17 @@ const docTemplate = `{
                 },
                 "visit_time": {
                     "$ref": "#/definitions/models.CustomTime"
+                }
+            }
+        },
+        "repository.HotTag": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

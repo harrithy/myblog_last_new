@@ -68,6 +68,9 @@ definitions:
         type: array
       created_at:
         $ref: '#/definitions/models.CustomTime'
+      description:
+        description: 分类描述
+        type: string
       id:
         type: integer
       img_url:
@@ -80,6 +83,11 @@ definitions:
         type: integer
       sort_order:
         type: integer
+      tags:
+        description: 分类标签
+        items:
+          type: string
+        type: array
       type:
         description: folder=文件夹, article=文章
         type: string
@@ -173,6 +181,13 @@ definitions:
         $ref: '#/definitions/models.CustomTime'
     required:
     - visit_time
+    type: object
+  repository.HotTag:
+    properties:
+      count:
+        type: integer
+      name:
+        type: string
     type: object
   response.APIResponse:
     properties:
@@ -514,6 +529,30 @@ paths:
           schema:
             $ref: '#/definitions/response.APIResponse'
       summary: 更新分类
+      tags:
+      - categories
+  /categories/hot-tags:
+    get:
+      description: 获取使用次数前6的标签
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/repository.HotTag'
+                  type: array
+              type: object
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: 获取热门标签
       tags:
       - categories
   /comments:
