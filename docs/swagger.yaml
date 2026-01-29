@@ -361,7 +361,7 @@ paths:
       - blogs
   /categories:
     get:
-      description: 获取所有分类，支持树形结构返回
+      description: 获取所有分类，支持树形结构返回和分页查询
       parameters:
       - description: 是否返回树形结构，默认true
         in: query
@@ -379,6 +379,14 @@ paths:
         in: query
         name: keyword
         type: string
+      - description: 页码，从1开始
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量，默认10
+        in: query
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:

@@ -21,6 +21,8 @@ type CategoryFilter struct {
 	ParentID *int
 	Type     string
 	Keyword  string // 标题模糊搜索关键词
+	Page     int    // 页码，从1开始
+	PageSize int    // 每页数量
 }
 
 // parseTags 解析 JSON 格式的标签
@@ -98,31 +100,48 @@ func (r *CategoryRepository) GetHotTags(limit int) ([]HotTag, error) {
 	return hotTags, nil
 }
 
-// GetAll 返回所有分类，支持可选过滤
-func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, error) {
-	query := "SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at FROM categories WHERE 1=1"
+// GetAll 返回所有分类，支持可选过滤和分页
+func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, int64, error) {
+	// 构建 WHERE 条件
+	whereClauses := "WHERE 1=1"
 	var args []interface{}
 
 	if filter.ParentID != nil {
-		query += " AND parent_id = ?"
+		whereClauses += " AND parent_id = ?"
 		args = append(args, *filter.ParentID)
 	}
 
 	if filter.Type != "" && (filter.Type == "folder" || filter.Type == "article") {
-		query += " AND type = ?"
+		whereClauses += " AND type = ?"
 		args = append(args, filter.Type)
 	}
 
 	if filter.Keyword != "" {
-		query += " AND name LIKE ?"
+		whereClauses += " AND name LIKE ?"
 		args = append(args, "%"+filter.Keyword+"%")
 	}
 
+	// 查询总数
+	var total int64
+	countQuery := "SELECT COUNT(*) FROM categories " + whereClauses
+	if err := r.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// 构建查询语句
+	query := "SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at FROM categories " + whereClauses
 	query += " ORDER BY sort_order ASC, id ASC"
+
+	// 添加分页
+	if filter.Page > 0 && filter.PageSize > 0 {
+		offset := (filter.Page - 1) * filter.PageSize
+		query += " LIMIT ? OFFSET ?"
+		args = append(args, filter.PageSize, offset)
+	}
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -132,7 +151,7 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, e
 		var parentID sql.NullInt64
 		var tagsJSON string
 		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.Description, &tagsJSON, &cat.URL, &cat.ImgURL, &parentID, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if parentID.Valid {
 			pid := int(parentID.Int64)
@@ -142,7 +161,7 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, e
 		categories = append(categories, cat)
 	}
 
-	return categories, nil
+	return categories, total, nil
 }
 
 // GetByID 根据 ID 返回分类

@@ -255,7 +255,7 @@ const docTemplate = `{
         },
         "/categories": {
             "get": {
-                "description": "获取所有分类，支持树形结构返回",
+                "description": "获取所有分类，支持树形结构返回和分页查询",
                 "produces": [
                     "application/json"
                 ],
@@ -286,6 +286,18 @@ const docTemplate = `{
                         "type": "string",
                         "description": "标题模糊搜索关键词",
                         "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码，从1开始",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量，默认10",
+                        "name": "page_size",
                         "in": "query"
                     }
                 ],

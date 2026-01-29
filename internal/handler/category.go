@@ -71,19 +71,23 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 
 // GetCategories godoc
 // @Summary 获取分类列表
-// @Description 获取所有分类，支持树形结构返回
+// @Description 获取所有分类，支持树形结构返回和分页查询
 // @Tags categories
 // @Produce  json
 // @Param   tree      query    bool    false  "是否返回树形结构，默认true"
 // @Param   parent_id query    int     false  "父分类ID"
 // @Param   type      query    string  false  "类型筛选：folder或article"
 // @Param   keyword   query    string  false  "标题模糊搜索关键词"
+// @Param   page      query    int     false  "页码，从1开始"
+// @Param   page_size query    int     false  "每页数量，默认10"
 // @Success 200 {object} response.APIResponse{data=[]models.Category}
 // @Failure 500 {object} response.APIResponse "查询失败"
 // @Router /categories [get]
 func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) {
 	treeMode := r.URL.Query().Get("tree") != "false"
 	parentIDStr := r.URL.Query().Get("parent_id")
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("page_size")
 
 	filter := repository.CategoryFilter{
 		Type:    r.URL.Query().Get("type"),
@@ -96,12 +100,38 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	categories, err := h.repo.GetAll(filter)
+	// 解析分页参数
+	var page, pageSize int
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	if pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 {
+			pageSize = ps
+		}
+	}
+	// 如果指定了page但没有page_size，默认10
+	if page > 0 && pageSize == 0 {
+		pageSize = 10
+	}
+	filter.Page = page
+	filter.PageSize = pageSize
+
+	categories, total, err := h.repo.GetAll(filter)
 	if err != nil {
 		response.InternalError(w, "Query failed: "+err.Error())
 		return
 	}
 
+	// 如果启用分页，返回带分页信息的响应
+	if page > 0 {
+		response.SuccessWithPage(w, categories, total, page)
+		return
+	}
+
+	// 非分页模式
 	var result interface{}
 	// 使用关键词搜索时，直接返回扁平列表
 	if treeMode && parentIDStr == "" && filter.Keyword == "" {
