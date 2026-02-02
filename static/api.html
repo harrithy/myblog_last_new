@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 接口管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        pre { font-family: 'JetBrains Mono', monospace; }
+        .transition-base { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-semibold text-slate-900">API 接口管理</h1>
+                    <p class="text-xs text-slate-500">My Blog API v1.0</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="搜索接口..." class="pl-10 pr-4 py-2 w-64 bg-slate-100 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:bg-white transition-base">
+                </div>
+                <a href="/swagger/index.html" target="_blank" class="px-4 py-2 text-sm font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet-100 transition-base cursor-pointer">
+                    Swagger UI
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-6 py-8 flex gap-8">
+        <!-- Sidebar -->
+        <aside class="w-64 flex-shrink-0">
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden sticky top-24">
+                <div class="p-4 border-b border-slate-100">
+                    <h3 class="text-sm font-semibold text-slate-900">接口分组</h3>
+                </div>
+                <nav id="tagNav" class="p-2 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                    <div class="text-center py-8 text-slate-400 text-sm">加载中...</div>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 min-w-0">
+            <!-- Stats -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="text-2xl font-bold text-slate-900" id="totalCount">0</div>
+                    <div class="text-sm text-slate-500">总接口数</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="text-2xl font-bold text-emerald-500" id="getCount">0</div>
+                    <div class="text-sm text-slate-500">GET 请求</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="text-2xl font-bold text-blue-500" id="postCount">0</div>
+                    <div class="text-sm text-slate-500">POST 请求</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="text-2xl font-bold text-amber-500" id="otherCount">0</div>
+                    <div class="text-sm text-slate-500">其他请求</div>
+                </div>
+            </div>
+
+            <!-- API List -->
+            <div id="apiList" class="space-y-4">
+                <div class="text-center py-16 text-slate-400">
+                    <svg class="w-12 h-12 mx-auto mb-4 text-slate-300 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p>加载接口列表...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Test Modal -->
+    <div id="testModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                    <div>
+                        <h3 class="font-semibold text-slate-900" id="modalTitle">测试接口</h3>
+                        <p class="text-sm text-slate-500" id="modalPath">/api/path</p>
+                    </div>
+                    <button onclick="closeTestModal()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-base cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- Request -->
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/>
+                                </svg>
+                                请求
+                            </h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1.5">请求方法</label>
+                                    <div class="flex items-center gap-2">
+                                        <span id="modalMethod" class="px-3 py-1.5 text-sm font-bold rounded-lg"></span>
+                                        <input type="text" id="modalUrl" class="flex-1 px-3 py-2 bg-slate-100 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/20" readonly>
+                                    </div>
+                                </div>
+                                <div id="headersSection">
+                                    <label class="block text-xs font-medium text-slate-500 mb-1.5">请求头</label>
+                                    <div class="space-y-2" id="headersContainer">
+                                        <div class="flex gap-2">
+                                            <input type="text" value="Content-Type" class="flex-1 px-3 py-2 bg-slate-100 rounded-lg text-sm font-mono" readonly>
+                                            <input type="text" value="application/json" class="flex-1 px-3 py-2 bg-slate-100 rounded-lg text-sm font-mono" readonly>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <input type="text" value="Authorization" class="flex-1 px-3 py-2 bg-slate-100 rounded-lg text-sm font-mono" placeholder="Header">
+                                            <input type="text" id="authHeader" class="flex-1 px-3 py-2 bg-slate-100 rounded-lg text-sm font-mono" placeholder="Bearer token...">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="paramsSection" class="hidden">
+                                    <label class="block text-xs font-medium text-slate-500 mb-1.5">查询参数</label>
+                                    <div class="space-y-2" id="paramsContainer"></div>
+                                </div>
+                                <div id="bodySection" class="hidden">
+                                    <label class="block text-xs font-medium text-slate-500 mb-1.5">请求体 (JSON)</label>
+                                    <textarea id="requestBody" rows="8" class="w-full px-3 py-2 bg-slate-100 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/20 resize-none" placeholder="{}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Response -->
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                                </svg>
+                                响应
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-slate-500">状态码:</span>
+                                    <span id="responseStatus" class="px-2 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">--</span>
+                                    <span class="text-xs text-slate-500">耗时:</span>
+                                    <span id="responseTime" class="text-xs text-slate-600">--</span>
+                                </div>
+                                <div class="bg-slate-900 rounded-xl p-4 min-h-[300px] max-h-[400px] overflow-auto custom-scrollbar">
+                                    <pre id="responseBody" class="text-sm text-slate-300 whitespace-pre-wrap">点击"发送请求"查看响应</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+                    <button onclick="closeTestModal()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-base cursor-pointer">
+                        关闭
+                    </button>
+                    <button onclick="sendRequest()" id="sendBtn" class="px-6 py-2 text-sm font-medium text-white bg-violet-500 rounded-lg hover:bg-violet-600 transition-base cursor-pointer flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        发送请求
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let swaggerData = null;
+        let allApis = [];
+        let currentApi = null;
+
+        const methodColors = {
+            get: { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+            post: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+            put: { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+            delete: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
+            patch: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' }
+        };
+
+        async function loadSwagger() {
+            try {
+                const res = await fetch(`${API_BASE}/swagger/doc.json`);
+                swaggerData = await res.json();
+                parseApis();
+                renderTagNav();
+                renderApiList();
+                updateStats();
+            } catch (err) {
+                console.error('加载Swagger失败:', err);
+                document.getElementById('apiList').innerHTML = `
+                    <div class="text-center py-16 text-red-400">
+                        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p>加载失败，请确保服务已启动</p>
+                    </div>
+                `;
+            }
+        }
+
+        function parseApis() {
+            allApis = [];
+            const paths = swaggerData.paths || {};
+            
+            for (const [path, methods] of Object.entries(paths)) {
+                for (const [method, info] of Object.entries(methods)) {
+                    allApis.push({
+                        path,
+                        method: method.toUpperCase(),
+                        summary: info.summary || path,
+                        description: info.description || '',
+                        tags: info.tags || ['其他'],
+                        parameters: info.parameters || [],
+                        consumes: info.consumes || [],
+                        produces: info.produces || [],
+                        responses: info.responses || {},
+                        security: info.security || []
+                    });
+                }
+            }
+        }
+
+        function renderTagNav() {
+            const tags = {};
+            allApis.forEach(api => {
+                api.tags.forEach(tag => {
+                    if (!tags[tag]) tags[tag] = 0;
+                    tags[tag]++;
+                });
+            });
+
+            const tagNav = document.getElementById('tagNav');
+            tagNav.innerHTML = `
+                <button onclick="filterByTag(null)" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-violet-600 bg-violet-50 mb-1 cursor-pointer transition-base hover:bg-violet-100" data-tag="">
+                    全部接口 <span class="float-right text-violet-400">${allApis.length}</span>
+                </button>
+                ${Object.entries(tags).map(([tag, count]) => `
+                    <button onclick="filterByTag('${tag}')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 mb-1 cursor-pointer transition-base" data-tag="${tag}">
+                        ${tag} <span class="float-right text-slate-400">${count}</span>
+                    </button>
+                `).join('')}
+            `;
+        }
+
+        function filterByTag(tag) {
+            document.querySelectorAll('#tagNav button').forEach(btn => {
+                const isActive = btn.dataset.tag === (tag || '');
+                btn.classList.toggle('text-violet-600', isActive);
+                btn.classList.toggle('bg-violet-50', isActive);
+                btn.classList.toggle('text-slate-600', !isActive);
+                btn.classList.toggle('bg-transparent', !isActive);
+            });
+            
+            const filtered = tag ? allApis.filter(api => api.tags.includes(tag)) : allApis;
+            renderApiList(filtered);
+        }
+
+        function renderApiList(apis = allApis) {
+            const container = document.getElementById('apiList');
+            
+            if (apis.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-slate-400">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p>未找到匹配的接口</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = apis.map((api, idx) => {
+                const colors = methodColors[api.method.toLowerCase()] || methodColors.get;
+                const hasAuth = api.security && api.security.length > 0;
+                
+                return `
+                    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-base group">
+                        <div class="p-5">
+                            <div class="flex items-start gap-4">
+                                <span class="px-3 py-1.5 text-xs font-bold rounded-lg ${colors.bg} ${colors.text} flex-shrink-0">
+                                    ${api.method}
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <code class="text-sm font-mono text-slate-700">${api.path}</code>
+                                        ${hasAuth ? `
+                                            <span class="px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded" title="需要认证">
+                                                <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                                </svg>
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                    <p class="text-sm text-slate-500">${api.summary}</p>
+                                    ${api.description && api.description !== api.summary ? `<p class="text-xs text-slate-400 mt-1">${api.description}</p>` : ''}
+                                </div>
+                                <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-base">
+                                    <button onclick="openTestModal(${idx})" class="px-3 py-1.5 text-sm font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet-100 transition-base cursor-pointer">
+                                        测试
+                                    </button>
+                                    <button onclick="copyApi(${idx})" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-base cursor-pointer" title="复制">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            ${api.parameters.length > 0 ? `
+                                <div class="mt-4 pt-4 border-t border-slate-100">
+                                    <div class="flex flex-wrap gap-2">
+                                        ${api.parameters.slice(0, 5).map(p => `
+                                            <span class="px-2 py-1 text-xs bg-slate-100 text-slate-600 rounded">
+                                                <span class="text-slate-400">${p.in}:</span> ${p.name}${p.required ? ' *' : ''}
+                                            </span>
+                                        `).join('')}
+                                        ${api.parameters.length > 5 ? `<span class="text-xs text-slate-400">+${api.parameters.length - 5} more</span>` : ''}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('totalCount').textContent = allApis.length;
+            document.getElementById('getCount').textContent = allApis.filter(a => a.method === 'GET').length;
+            document.getElementById('postCount').textContent = allApis.filter(a => a.method === 'POST').length;
+            document.getElementById('otherCount').textContent = allApis.filter(a => !['GET', 'POST'].includes(a.method)).length;
+        }
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const keyword = e.target.value.trim().toLowerCase();
+            if (!keyword) {
+                renderApiList();
+                return;
+            }
+            const filtered = allApis.filter(api => 
+                api.path.toLowerCase().includes(keyword) ||
+                api.summary.toLowerCase().includes(keyword) ||
+                api.description.toLowerCase().includes(keyword)
+            );
+            renderApiList(filtered);
+        });
+
+        // Test Modal
+        function openTestModal(idx) {
+            currentApi = allApis[idx];
+            const colors = methodColors[currentApi.method.toLowerCase()] || methodColors.get;
+            
+            document.getElementById('modalTitle').textContent = currentApi.summary;
+            document.getElementById('modalPath').textContent = currentApi.path;
+            document.getElementById('modalMethod').textContent = currentApi.method;
+            document.getElementById('modalMethod').className = `px-3 py-1.5 text-sm font-bold rounded-lg ${colors.bg} ${colors.text}`;
+            document.getElementById('modalUrl').value = API_BASE + '/api' + currentApi.path;
+            
+            // Params
+            const queryParams = currentApi.parameters.filter(p => p.in === 'query');
+            const paramsSection = document.getElementById('paramsSection');
+            const paramsContainer = document.getElementById('paramsContainer');
+            if (queryParams.length > 0) {
+                paramsSection.classList.remove('hidden');
+                paramsContainer.innerHTML = queryParams.map(p => `
+                    <div class="flex gap-2 items-center">
+                        <input type="text" value="${p.name}" class="w-32 px-3 py-2 bg-slate-100 rounded-lg text-sm font-mono" readonly>
+                        <input type="text" id="param_${p.name}" class="flex-1 px-3 py-2 bg-slate-100 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/20" placeholder="${p.description || p.name}${p.required ? ' (必填)' : ''}">
+                    </div>
+                `).join('');
+            } else {
+                paramsSection.classList.add('hidden');
+            }
+            
+            // Body
+            const bodySection = document.getElementById('bodySection');
+            const hasBody = ['POST', 'PUT', 'PATCH'].includes(currentApi.method);
+            if (hasBody) {
+                bodySection.classList.remove('hidden');
+                const bodyParam = currentApi.parameters.find(p => p.in === 'body');
+                document.getElementById('requestBody').value = bodyParam ? JSON.stringify(bodyParam.schema || {}, null, 2) : '{}';
+            } else {
+                bodySection.classList.add('hidden');
+            }
+            
+            // Reset response
+            document.getElementById('responseStatus').textContent = '--';
+            document.getElementById('responseStatus').className = 'px-2 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600';
+            document.getElementById('responseTime').textContent = '--';
+            document.getElementById('responseBody').textContent = '点击"发送请求"查看响应';
+            
+            document.getElementById('testModal').classList.remove('hidden');
+        }
+
+        function closeTestModal() {
+            document.getElementById('testModal').classList.add('hidden');
+            currentApi = null;
+        }
+
+        async function sendRequest() {
+            if (!currentApi) return;
+            
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 请求中...';
+            
+            let url = document.getElementById('modalUrl').value;
+            const queryParams = currentApi.parameters.filter(p => p.in === 'query');
+            if (queryParams.length > 0) {
+                const params = new URLSearchParams();
+                queryParams.forEach(p => {
+                    const val = document.getElementById(`param_${p.name}`)?.value;
+                    if (val) params.append(p.name, val);
+                });
+                const qs = params.toString();
+                if (qs) url += '?' + qs;
+            }
+            
+            const options = {
+                method: currentApi.method,
+                headers: { 'Content-Type': 'application/json' }
+            };
+            
+            const auth = document.getElementById('authHeader').value.trim();
+            if (auth) options.headers['Authorization'] = auth;
+            
+            if (['POST', 'PUT', 'PATCH'].includes(currentApi.method)) {
+                const body = document.getElementById('requestBody').value;
+                try {
+                    options.body = JSON.stringify(JSON.parse(body));
+                } catch (e) {
+                    options.body = body;
+                }
+            }
+            
+            const startTime = performance.now();
+            
+            try {
+                const res = await fetch(url, options);
+                const endTime = performance.now();
+                const duration = Math.round(endTime - startTime);
+                
+                document.getElementById('responseTime').textContent = duration + 'ms';
+                document.getElementById('responseStatus').textContent = res.status + ' ' + res.statusText;
+                document.getElementById('responseStatus').className = `px-2 py-0.5 text-xs font-medium rounded ${res.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`;
+                
+                const data = await res.json();
+                document.getElementById('responseBody').textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('responseStatus').textContent = 'Error';
+                document.getElementById('responseStatus').className = 'px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-700';
+                document.getElementById('responseBody').textContent = err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> 发送请求';
+            }
+        }
+
+        function copyApi(idx) {
+            const api = allApis[idx];
+            const text = `${api.method} ${API_BASE}/api${api.path}`;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('已复制到剪贴板');
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-6 right-6 px-4 py-2 bg-slate-900 text-white text-sm rounded-lg shadow-lg z-50 animate-fade-in';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        // ESC close modal
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeTestModal();
+        });
+
+        // Click outside to close
+        document.getElementById('testModal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) closeTestModal();
+        });
+
+        // Init
+        loadSwagger();
+    </script>
+</body>
+</html>
