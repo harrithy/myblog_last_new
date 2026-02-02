@@ -52,6 +52,7 @@ func main() {
 	fmt.Printf("服务器正在端口 %s 启动...\n", port)
 	fmt.Printf("API 文档地址: http://localhost:%s/swagger/index.html\n", port)
 	fmt.Printf("分类管理页面: http://localhost:%s/static/category.html\n", port)
+	fmt.Printf("接口文档页面: http://localhost:%s/static/api.html\n", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatalf("无法启动服务器: %v", err)
 	}
