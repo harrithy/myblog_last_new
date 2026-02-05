@@ -129,6 +129,11 @@ func (h *AuthHandler) VerifyToken(w http.ResponseWriter, r *http.Request) {
 	// 邮箱登录：account == "harrithy@github.com"
 	isOwner := claims.Username == "harrio" || claims.Username == "github_156180607" || claims.Username == "harrithy@github.com"
 
+	// 如果是博主，记录访问
+	if isOwner {
+		go h.ownerRepo.RecordVisit()
+	}
+
 	var userData map[string]interface{}
 	if isOwner {
 		userData = map[string]interface{}{
