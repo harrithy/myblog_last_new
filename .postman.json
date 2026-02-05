@@ -1,0 +1,10 @@
+{
+  "workspaceId": "4544d4e5-300e-44d0-8ec8-ade8079990c2",
+  "workspaceName": "My Workspace",
+  "collectionId": "43285832-4f4b9d8f-6dcd-46ef-b907-c402ad12b864",
+  "collectionName": "MyBlog API 测试集合",
+  "environmentId": "43285832-8c108ee8-a813-43f4-a72b-190340a5ce0b",
+  "environmentName": "MyBlog Local",
+  "baseUrl": "http://localhost:8080",
+  "createdAt": "2026-02-05"
+}
