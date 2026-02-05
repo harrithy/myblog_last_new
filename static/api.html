@@ -17,6 +17,7 @@
                     },
                     colors: {
                         dark: {
+                            950: '#020617',
                             900: '#0F172A',
                             800: '#1E293B',
                             700: '#334155',
@@ -37,16 +38,41 @@
                         },
                         accent: {
                             green: '#22C55E',
+                            emerald: '#10B981',
                             blue: '#3B82F6',
+                            sky: '#0EA5E9',
                             amber: '#F59E0B',
+                            orange: '#F97316',
                             red: '#EF4444',
+                            rose: '#F43F5E',
                             purple: '#A855F7',
+                            violet: '#8B5CF6',
+                            cyan: '#06B6D4',
+                        }
+                    },
+                    animation: {
+                        'gradient': 'gradient 8s ease infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': { backgroundPosition: '0% 50%' },
+                            '50%': { backgroundPosition: '100% 50%' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
                         }
                     }
                 }
             }
         }
-        // 初始化主题
         if (localStorage.getItem('theme') === 'light' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: light)').matches)) {
             document.documentElement.classList.remove('dark');
         } else {
@@ -56,78 +82,180 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+        
+        /* 自定义滚动条 */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1E293B; border-radius: 3px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748B; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #F1F5F9; border-radius: 3px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+        
         pre, code { font-family: 'JetBrains Mono', monospace; }
-        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-        .method-badge { transition: all 0.2s ease; }
-        .api-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .api-card:hover { transform: translateY(-2px); }
+        
+        /* 动画 */
+        .animate-fade-in { animation: fadeIn 0.25s ease-out; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        .animate-scale-in { animation: scaleIn 0.2s ease-out; }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; } 
+            to { opacity: 1; } 
+        }
+        @keyframes slideUp { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        @keyframes scaleIn { 
+            from { opacity: 0; transform: scale(0.95); } 
+            to { opacity: 1; transform: scale(1); } 
+        }
+        
+        /* 卡片悬停效果 */
+        .api-card { 
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .api-card:hover { 
+            transform: translateY(-2px); 
+        }
+        
+        /* 玻璃态效果 */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .dark .glass {
+            background: rgba(30, 41, 59, 0.7);
+        }
+        
+        /* 渐变边框 */
+        .gradient-border {
+            position: relative;
+        }
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, #22C55E, #3B82F6, #A855F7);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .gradient-border:hover::before {
+            opacity: 1;
+        }
+        
+        /* 背景网格 */
+        .bg-grid {
+            background-image: 
+                linear-gradient(rgba(34, 197, 94, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 197, 94, 0.03) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        .dark .bg-grid {
+            background-image: 
+                linear-gradient(rgba(34, 197, 94, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 197, 94, 0.05) 1px, transparent 1px);
+        }
+        
+        /* 发光效果 */
+        .glow-green {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.15), 0 0 40px rgba(34, 197, 94, 0.1);
+        }
+        .dark .glow-green {
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.2), 0 0 60px rgba(34, 197, 94, 0.1);
+        }
+        
+        /* 减少动画 */
         @media (prefers-reduced-motion: reduce) {
             .api-card:hover { transform: none; }
-            .animate-fade-in { animation: none; }
+            .animate-fade-in, .animate-slide-up, .animate-scale-in { animation: none; }
+            * { transition-duration: 0.01ms !important; }
+        }
+        
+        /* 代码块语法高亮背景 */
+        .code-block {
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
         }
     </style>
 </head>
-<body class="bg-light-50 dark:bg-dark-900 text-light-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+<body class="bg-light-50 dark:bg-dark-950 text-light-900 dark:text-slate-100 min-h-screen transition-colors duration-300 bg-grid">
+    <!-- 背景装饰 -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-accent-green/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 -left-40 w-80 h-80 bg-accent-blue/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-40 right-1/3 w-80 h-80 bg-accent-purple/10 rounded-full blur-3xl"></div>
+    </div>
+
     <!-- Header -->
-    <header class="bg-white/80 dark:bg-dark-800/80 backdrop-blur-md border-b border-light-200 dark:border-dark-700/50 sticky top-0 z-50 transition-colors duration-300">
+    <header class="glass border-b border-light-200/50 dark:border-dark-700/30 sticky top-0 z-50 transition-colors duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-accent-green to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-green/20">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                    </svg>
+            <div class="flex items-center gap-4">
+                <!-- Logo -->
+                <div class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-accent-green via-accent-emerald to-accent-cyan rounded-xl blur opacity-40 group-hover:opacity-60 transition duration-300"></div>
+                    <div class="relative w-10 h-10 bg-gradient-to-br from-accent-green to-accent-emerald rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                        </svg>
+                    </div>
                 </div>
                 <div>
                     <h1 class="text-lg font-semibold text-light-900 dark:text-white">API 接口文档</h1>
                     <p class="text-xs text-light-500 dark:text-dark-500">My Blog API v1.0</p>
                 </div>
             </div>
+            
             <div class="flex items-center gap-3">
-                <!-- Search -->
-                <div class="relative">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input type="text" id="searchInput" placeholder="搜索接口... (Ctrl+K)" 
-                        class="pl-10 pr-4 py-2.5 w-72 bg-light-100 dark:bg-dark-700/50 border border-light-300 dark:border-dark-600/50 rounded-xl text-sm text-light-900 dark:text-white placeholder-light-400 dark:placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50 transition-all duration-200 cursor-text">
-                    <!-- Search Results Dropdown -->
-                    <div id="searchResults" class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-800 border border-light-200 dark:border-dark-700/50 rounded-xl shadow-2xl hidden max-h-80 overflow-auto custom-scrollbar"></div>
+                <!-- 搜索框 -->
+                <div class="relative group">
+                    <div class="absolute -inset-0.5 bg-gradient-to-r from-accent-green/20 to-accent-blue/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-300"></div>
+                    <div class="relative flex items-center">
+                        <svg class="absolute left-3 w-4 h-4 text-light-400 dark:text-dark-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input type="text" id="searchInput" placeholder="搜索接口... ⌘K" 
+                            class="pl-10 pr-4 py-2.5 w-72 bg-light-100/80 dark:bg-dark-800/50 border border-light-200 dark:border-dark-700/50 rounded-xl text-sm text-light-900 dark:text-white placeholder-light-400 dark:placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50 transition-all duration-200 cursor-text">
+                    </div>
+                    <!-- 搜索结果下拉 -->
+                    <div id="searchResults" class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-800 border border-light-200 dark:border-dark-700/50 rounded-xl shadow-2xl hidden max-h-96 overflow-auto custom-scrollbar animate-scale-in"></div>
                 </div>
-                <!-- Theme Toggle -->
-                <button onclick="toggleTheme()" class="p-2.5 text-light-500 dark:text-dark-500 hover:text-light-700 dark:hover:text-white bg-light-100 dark:bg-dark-700/50 border border-light-200 dark:border-dark-600/50 rounded-xl hover:bg-light-200 dark:hover:bg-dark-700 transition-all duration-200 cursor-pointer" title="切换主题">
-                    <!-- Sun icon (shown in dark mode) -->
-                    <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                
+                <!-- 主题切换 -->
+                <button onclick="toggleTheme()" class="relative p-2.5 text-light-500 dark:text-dark-400 hover:text-light-900 dark:hover:text-white bg-light-100/80 dark:bg-dark-800/50 border border-light-200 dark:border-dark-700/50 rounded-xl hover:bg-light-200/80 dark:hover:bg-dark-700/50 transition-all duration-200 cursor-pointer group" title="切换主题">
+                    <svg class="w-5 h-5 hidden dark:block transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
                     </svg>
-                    <!-- Moon icon (shown in light mode) -->
-                    <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 block dark:hidden transition-transform group-hover:-rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                     </svg>
                 </button>
+                
+                <!-- Swagger 链接 -->
                 <a href="/swagger/index.html" target="_blank" 
-                    class="px-4 py-2.5 text-sm font-medium text-accent-green bg-accent-green/10 border border-accent-green/20 rounded-xl hover:bg-accent-green/20 transition-all duration-200 cursor-pointer flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="group relative px-4 py-2.5 text-sm font-medium text-accent-green bg-accent-green/10 border border-accent-green/20 rounded-xl hover:bg-accent-green/20 hover:border-accent-green/30 transition-all duration-200 cursor-pointer flex items-center gap-2 overflow-hidden">
+                    <span class="absolute inset-0 bg-gradient-to-r from-accent-green/0 via-accent-green/10 to-accent-green/0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></span>
+                    <svg class="w-4 h-4 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                     </svg>
-                    Swagger UI
+                    <span class="relative">Swagger UI</span>
                 </a>
             </div>
         </div>
     </header>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8">
-        <!-- Sidebar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8 relative">
+        <!-- 侧边栏 -->
         <aside class="w-64 flex-shrink-0 hidden lg:block">
-            <div class="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl border border-light-200 dark:border-dark-700/50 overflow-hidden sticky top-24 transition-colors duration-300">
-                <div class="p-4 border-b border-light-200 dark:border-dark-700/50">
+            <div class="glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 overflow-hidden sticky top-24 transition-colors duration-300">
+                <div class="p-4 border-b border-light-200/50 dark:border-dark-700/30 bg-gradient-to-r from-accent-green/5 to-transparent">
                     <h3 class="text-sm font-semibold text-light-900 dark:text-white flex items-center gap-2">
                         <svg class="w-4 h-4 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
@@ -147,66 +275,73 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
+        <!-- 主内容区 -->
         <main class="flex-1 min-w-0">
-            <!-- Stats -->
+            <!-- 统计卡片 -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl border border-light-200 dark:border-dark-700/50 p-5 hover:border-light-300 dark:hover:border-dark-600/50 transition-colors duration-200">
+                <!-- 总接口数 -->
+                <div class="group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-light-300 dark:hover:border-dark-600/50 transition-all duration-300 cursor-default">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-light-100 dark:bg-dark-700/50 rounded-xl flex items-center justify-center">
-                            <svg class="w-5 h-5 text-light-600 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-12 h-12 bg-gradient-to-br from-light-200 to-light-100 dark:from-dark-700 dark:to-dark-800 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-light-600 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                             </svg>
                         </div>
                         <div>
-                            <div class="text-2xl font-bold text-light-900 dark:text-white font-mono" id="totalCount">0</div>
-                            <div class="text-xs text-light-500 dark:text-dark-500">总接口数</div>
+                            <div class="text-3xl font-bold text-light-900 dark:text-white font-mono" id="totalCount">0</div>
+                            <div class="text-xs text-light-500 dark:text-dark-500 font-medium">总接口数</div>
                         </div>
                     </div>
                 </div>
-                <div class="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl border border-light-200 dark:border-dark-700/50 p-5 hover:border-accent-green/30 transition-colors duration-200">
+                
+                <!-- GET 请求 -->
+                <div class="group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-green/30 transition-all duration-300 cursor-default">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-accent-green/10 rounded-xl flex items-center justify-center">
-                            <span class="text-xs font-bold text-accent-green">GET</span>
+                        <div class="w-12 h-12 bg-gradient-to-br from-accent-green/20 to-accent-emerald/10 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                            <span class="text-sm font-bold text-accent-green font-mono">GET</span>
                         </div>
                         <div>
-                            <div class="text-2xl font-bold text-accent-green font-mono" id="getCount">0</div>
-                            <div class="text-xs text-light-500 dark:text-dark-500">GET 请求</div>
+                            <div class="text-3xl font-bold text-accent-green font-mono" id="getCount">0</div>
+                            <div class="text-xs text-light-500 dark:text-dark-500 font-medium">GET 请求</div>
                         </div>
                     </div>
                 </div>
-                <div class="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl border border-light-200 dark:border-dark-700/50 p-5 hover:border-accent-blue/30 transition-colors duration-200">
+                
+                <!-- POST 请求 -->
+                <div class="group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-blue/30 transition-all duration-300 cursor-default">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-accent-blue/10 rounded-xl flex items-center justify-center">
-                            <span class="text-xs font-bold text-accent-blue">POST</span>
+                        <div class="w-12 h-12 bg-gradient-to-br from-accent-blue/20 to-accent-sky/10 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                            <span class="text-sm font-bold text-accent-blue font-mono">POST</span>
                         </div>
                         <div>
-                            <div class="text-2xl font-bold text-accent-blue font-mono" id="postCount">0</div>
-                            <div class="text-xs text-light-500 dark:text-dark-500">POST 请求</div>
+                            <div class="text-3xl font-bold text-accent-blue font-mono" id="postCount">0</div>
+                            <div class="text-xs text-light-500 dark:text-dark-500 font-medium">POST 请求</div>
                         </div>
                     </div>
                 </div>
-                <div class="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl border border-light-200 dark:border-dark-700/50 p-5 hover:border-accent-amber/30 transition-colors duration-200">
+                
+                <!-- 其他请求 -->
+                <div class="group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-amber/30 transition-all duration-300 cursor-default">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-accent-amber/10 rounded-xl flex items-center justify-center">
-                            <span class="text-xs font-bold text-accent-amber">OTHER</span>
+                        <div class="w-12 h-12 bg-gradient-to-br from-accent-amber/20 to-accent-orange/10 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                            <span class="text-xs font-bold text-accent-amber font-mono">OTHER</span>
                         </div>
                         <div>
-                            <div class="text-2xl font-bold text-accent-amber font-mono" id="otherCount">0</div>
-                            <div class="text-xs text-light-500 dark:text-dark-500">其他请求</div>
+                            <div class="text-3xl font-bold text-accent-amber font-mono" id="otherCount">0</div>
+                            <div class="text-xs text-light-500 dark:text-dark-500 font-medium">其他请求</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Mobile Tag Filter -->
+            <!-- 移动端标签筛选 -->
             <div class="lg:hidden mb-6">
-                <select id="mobileTagSelect" class="w-full px-4 py-3 bg-white dark:bg-dark-800/50 border border-light-200 dark:border-dark-700/50 rounded-xl text-sm text-light-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 cursor-pointer">
+                <select id="mobileTagSelect" class="w-full px-4 py-3 glass border border-light-200/50 dark:border-dark-700/30 rounded-xl text-sm text-light-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 cursor-pointer">
                     <option value="">全部接口</option>
                 </select>
             </div>
 
-            <!-- API List -->
+            <!-- API 列表 -->
             <div id="apiList" class="space-y-4">
                 <div class="flex flex-col items-center justify-center py-20 text-light-400 dark:text-dark-500">
                     <svg class="w-12 h-12 mb-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -219,56 +354,56 @@
         </main>
     </div>
 
-    <!-- Test Modal -->
-    <div id="testModal" class="fixed inset-0 bg-light-900/50 dark:bg-dark-900/80 backdrop-blur-sm z-50 hidden">
+    <!-- 测试弹窗 -->
+    <div id="testModal" class="fixed inset-0 bg-light-900/60 dark:bg-dark-950/80 backdrop-blur-sm z-50 hidden">
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col border border-light-200 dark:border-dark-700/50 animate-fade-in">
-                <!-- Modal Header -->
-                <div class="px-6 py-4 border-b border-light-200 dark:border-dark-700/50 flex items-center justify-between bg-light-50 dark:bg-dark-800">
+            <div class="glass rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col border border-light-200/50 dark:border-dark-700/30 animate-scale-in">
+                <!-- 弹窗头部 -->
+                <div class="px-6 py-4 border-b border-light-200/50 dark:border-dark-700/30 flex items-center justify-between bg-gradient-to-r from-light-100/50 dark:from-dark-800/50 to-transparent">
                     <div class="flex items-center gap-4">
-                        <span id="modalMethod" class="px-3 py-1.5 text-xs font-bold rounded-lg method-badge"></span>
+                        <span id="modalMethod" class="px-3 py-1.5 text-xs font-bold rounded-lg"></span>
                         <div>
                             <h3 class="font-semibold text-light-900 dark:text-white" id="modalTitle">测试接口</h3>
                             <p class="text-sm text-light-500 dark:text-dark-500 font-mono" id="modalPath">/api/path</p>
                         </div>
                     </div>
-                    <button onclick="closeTestModal()" class="p-2 text-light-400 dark:text-dark-500 hover:text-light-900 dark:hover:text-white hover:bg-light-100 dark:hover:bg-dark-700 rounded-xl transition-colors duration-200 cursor-pointer">
+                    <button onclick="closeTestModal()" class="p-2 text-light-400 dark:text-dark-500 hover:text-light-900 dark:hover:text-white hover:bg-light-200/50 dark:hover:bg-dark-700/50 rounded-xl transition-colors duration-200 cursor-pointer">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
                 
-                <!-- Modal Body -->
+                <!-- 弹窗内容 -->
                 <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Request -->
+                        <!-- 请求配置 -->
                         <div class="space-y-4">
                             <h4 class="text-sm font-semibold text-light-900 dark:text-white flex items-center gap-2">
-                                <svg class="w-4 h-4 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/>
-                                </svg>
+                                <div class="w-6 h-6 bg-accent-blue/10 rounded-lg flex items-center justify-center">
+                                    <svg class="w-3.5 h-3.5 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/>
+                                    </svg>
+                                </div>
                                 请求配置
                             </h4>
                             
                             <!-- URL -->
                             <div>
                                 <label class="block text-xs font-medium text-light-500 dark:text-dark-500 mb-2">请求地址</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="text" id="modalUrl" class="flex-1 px-4 py-2.5 bg-light-100 dark:bg-dark-700/50 border border-light-200 dark:border-dark-600/50 rounded-xl text-sm font-mono text-light-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 cursor-text" readonly>
-                                </div>
+                                <input type="text" id="modalUrl" class="w-full px-4 py-2.5 bg-light-100/80 dark:bg-dark-800/50 border border-light-200 dark:border-dark-700/50 rounded-xl text-sm font-mono text-light-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 cursor-text" readonly>
                             </div>
                             
                             <!-- Headers -->
                             <div id="headersSection">
                                 <label class="block text-xs font-medium text-light-500 dark:text-dark-500 mb-2">请求头</label>
-                                <div class="space-y-2 bg-light-100 dark:bg-dark-700/30 rounded-xl p-3" id="headersContainer">
+                                <div class="space-y-2 bg-light-100/50 dark:bg-dark-800/30 rounded-xl p-3" id="headersContainer">
                                     <div class="flex gap-2">
-                                        <input type="text" value="Content-Type" class="w-32 px-3 py-2 bg-light-200 dark:bg-dark-800 rounded-lg text-xs font-mono text-light-500 dark:text-dark-400" readonly>
-                                        <input type="text" value="application/json" class="flex-1 px-3 py-2 bg-light-200 dark:bg-dark-800 rounded-lg text-xs font-mono text-light-500 dark:text-dark-400" readonly>
+                                        <input type="text" value="Content-Type" class="w-32 px-3 py-2 bg-light-200/80 dark:bg-dark-700/50 rounded-lg text-xs font-mono text-light-500 dark:text-dark-400" readonly>
+                                        <input type="text" value="application/json" class="flex-1 px-3 py-2 bg-light-200/80 dark:bg-dark-700/50 rounded-lg text-xs font-mono text-light-500 dark:text-dark-400" readonly>
                                     </div>
                                     <div class="flex gap-2">
-                                        <input type="text" value="Authorization" class="w-32 px-3 py-2 bg-light-200 dark:bg-dark-800 rounded-lg text-xs font-mono text-light-500 dark:text-dark-400" readonly>
+                                        <input type="text" value="Authorization" class="w-32 px-3 py-2 bg-light-200/80 dark:bg-dark-700/50 rounded-lg text-xs font-mono text-light-500 dark:text-dark-400" readonly>
                                         <input type="text" id="authHeader" class="flex-1 px-3 py-2 bg-white dark:bg-dark-700/50 border border-light-200 dark:border-dark-600/50 rounded-lg text-xs font-mono text-light-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 cursor-text" placeholder="Bearer token...">
                                     </div>
                                 </div>
@@ -277,30 +412,32 @@
                             <!-- Query Params -->
                             <div id="paramsSection" class="hidden">
                                 <label class="block text-xs font-medium text-light-500 dark:text-dark-500 mb-2">查询参数</label>
-                                <div class="space-y-2 bg-light-100 dark:bg-dark-700/30 rounded-xl p-3" id="paramsContainer"></div>
+                                <div class="space-y-2 bg-light-100/50 dark:bg-dark-800/30 rounded-xl p-3" id="paramsContainer"></div>
                             </div>
                             
                             <!-- Request Body -->
                             <div id="bodySection" class="hidden">
                                 <label class="block text-xs font-medium text-light-500 dark:text-dark-500 mb-2">请求体 (JSON)</label>
-                                <textarea id="requestBody" rows="10" class="w-full px-4 py-3 bg-light-100 dark:bg-dark-700/50 border border-light-200 dark:border-dark-600/50 rounded-xl text-sm font-mono text-light-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 resize-none custom-scrollbar cursor-text" placeholder="{}"></textarea>
+                                <textarea id="requestBody" rows="10" class="w-full px-4 py-3 bg-light-100/80 dark:bg-dark-800/50 border border-light-200 dark:border-dark-700/50 rounded-xl text-sm font-mono text-light-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 resize-none custom-scrollbar cursor-text" placeholder="{}"></textarea>
                             </div>
                         </div>
-                        
-                        <!-- Response -->
+
+                        <!-- 响应结果 -->
                         <div class="space-y-4">
                             <h4 class="text-sm font-semibold text-light-900 dark:text-white flex items-center gap-2">
-                                <svg class="w-4 h-4 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                                </svg>
+                                <div class="w-6 h-6 bg-accent-green/10 rounded-lg flex items-center justify-center">
+                                    <svg class="w-3.5 h-3.5 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                                    </svg>
+                                </div>
                                 响应结果
                             </h4>
                             
                             <!-- Response Meta -->
-                            <div class="flex items-center gap-4 bg-light-100 dark:bg-dark-700/30 rounded-xl px-4 py-3">
+                            <div class="flex items-center gap-4 bg-light-100/50 dark:bg-dark-800/30 rounded-xl px-4 py-3">
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs text-light-500 dark:text-dark-500">状态码</span>
-                                    <span id="responseStatus" class="px-2 py-1 text-xs font-mono font-medium rounded-lg bg-light-200 dark:bg-dark-700 text-light-500 dark:text-dark-400">--</span>
+                                    <span id="responseStatus" class="px-2.5 py-1 text-xs font-mono font-medium rounded-lg bg-light-200/80 dark:bg-dark-700/50 text-light-500 dark:text-dark-400">--</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs text-light-500 dark:text-dark-500">耗时</span>
@@ -309,33 +446,41 @@
                             </div>
                             
                             <!-- Response Body -->
-                            <div class="bg-light-800 dark:bg-dark-900 rounded-xl overflow-hidden">
-                                <div class="px-4 py-2 bg-light-700 dark:bg-dark-800/50 border-b border-light-600 dark:border-dark-700/50 flex items-center justify-between">
-                                    <span class="text-xs text-light-300">Response Body</span>
-                                    <button onclick="copyResponse()" class="text-xs text-light-400 dark:text-dark-500 hover:text-accent-green transition-colors duration-200 cursor-pointer flex items-center gap-1">
+                            <div class="code-block rounded-xl overflow-hidden border border-dark-700/50">
+                                <div class="px-4 py-2.5 bg-dark-800/80 border-b border-dark-700/50 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex gap-1.5">
+                                            <div class="w-3 h-3 rounded-full bg-accent-red/80"></div>
+                                            <div class="w-3 h-3 rounded-full bg-accent-amber/80"></div>
+                                            <div class="w-3 h-3 rounded-full bg-accent-green/80"></div>
+                                        </div>
+                                        <span class="text-xs text-dark-400 ml-2">Response Body</span>
+                                    </div>
+                                    <button onclick="copyResponse()" class="text-xs text-dark-400 hover:text-accent-green transition-colors duration-200 cursor-pointer flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-dark-700/50">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                         </svg>
                                         复制
                                     </button>
                                 </div>
-                                <pre id="responseBody" class="p-4 text-sm text-light-200 whitespace-pre-wrap overflow-auto max-h-80 custom-scrollbar">点击"发送请求"查看响应</pre>
+                                <pre id="responseBody" class="p-4 text-sm text-emerald-400 whitespace-pre-wrap overflow-auto max-h-80 custom-scrollbar bg-dark-900/50">点击"发送请求"查看响应</pre>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Modal Footer -->
-                <div class="px-6 py-4 border-t border-light-200 dark:border-dark-700/50 flex justify-end gap-3 bg-light-50 dark:bg-dark-800">
-                    <button onclick="closeTestModal()" class="px-5 py-2.5 text-sm font-medium text-light-500 dark:text-dark-400 bg-light-100 dark:bg-dark-700/50 border border-light-200 dark:border-dark-600/50 rounded-xl hover:bg-light-200 dark:hover:bg-dark-700 hover:text-light-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
+                <!-- 弹窗底部 -->
+                <div class="px-6 py-4 border-t border-light-200/50 dark:border-dark-700/30 flex justify-end gap-3 bg-gradient-to-r from-transparent to-light-100/50 dark:to-dark-800/50">
+                    <button onclick="closeTestModal()" class="px-5 py-2.5 text-sm font-medium text-light-600 dark:text-dark-400 bg-light-100/80 dark:bg-dark-700/50 border border-light-200 dark:border-dark-600/50 rounded-xl hover:bg-light-200/80 dark:hover:bg-dark-600/50 hover:text-light-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
                         关闭
                     </button>
-                    <button onclick="sendRequest()" id="sendBtn" class="px-6 py-2.5 text-sm font-medium text-white bg-accent-green rounded-xl hover:bg-emerald-600 transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-lg shadow-accent-green/20">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="sendRequest()" id="sendBtn" class="group relative px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-accent-green to-accent-emerald rounded-xl hover:shadow-lg hover:shadow-accent-green/25 transition-all duration-300 cursor-pointer flex items-center gap-2 overflow-hidden">
+                        <span class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></span>
+                        <svg class="w-4 h-4 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        发送请求
+                        <span class="relative">发送请求</span>
                     </button>
                 </div>
             </div>
@@ -350,14 +495,14 @@
         let searchTimeout = null;
 
         const methodStyles = {
-            get: { bg: 'bg-accent-green/10', text: 'text-accent-green', border: 'border-accent-green/30', hover: 'hover:border-accent-green/50' },
-            post: { bg: 'bg-accent-blue/10', text: 'text-accent-blue', border: 'border-accent-blue/30', hover: 'hover:border-accent-blue/50' },
-            put: { bg: 'bg-accent-amber/10', text: 'text-accent-amber', border: 'border-accent-amber/30', hover: 'hover:border-accent-amber/50' },
-            delete: { bg: 'bg-accent-red/10', text: 'text-accent-red', border: 'border-accent-red/30', hover: 'hover:border-accent-red/50' },
-            patch: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', border: 'border-accent-purple/30', hover: 'hover:border-accent-purple/50' }
+            get: { bg: 'bg-accent-green/10', text: 'text-accent-green', border: 'border-accent-green/30', hover: 'hover:border-accent-green/40', gradient: 'from-accent-green/20 to-accent-emerald/10' },
+            post: { bg: 'bg-accent-blue/10', text: 'text-accent-blue', border: 'border-accent-blue/30', hover: 'hover:border-accent-blue/40', gradient: 'from-accent-blue/20 to-accent-sky/10' },
+            put: { bg: 'bg-accent-amber/10', text: 'text-accent-amber', border: 'border-accent-amber/30', hover: 'hover:border-accent-amber/40', gradient: 'from-accent-amber/20 to-accent-orange/10' },
+            delete: { bg: 'bg-accent-red/10', text: 'text-accent-red', border: 'border-accent-red/30', hover: 'hover:border-accent-red/40', gradient: 'from-accent-red/20 to-accent-rose/10' },
+            patch: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', border: 'border-accent-purple/30', hover: 'hover:border-accent-purple/40', gradient: 'from-accent-purple/20 to-accent-violet/10' }
         };
 
-        // Load Swagger data
+        // 加载 Swagger 数据
         async function loadSwagger() {
             try {
                 const res = await fetch(`${API_BASE}/swagger/doc.json`);
@@ -371,11 +516,13 @@
                 console.error('加载Swagger失败:', err);
                 document.getElementById('apiList').innerHTML = `
                     <div class="flex flex-col items-center justify-center py-20 text-light-400 dark:text-dark-500">
-                        <svg class="w-16 h-16 mb-4 text-accent-red/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                        <div class="w-20 h-20 mb-6 bg-accent-red/10 rounded-2xl flex items-center justify-center">
+                            <svg class="w-10 h-10 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
                         <p class="text-lg font-medium text-light-900 dark:text-white mb-2">加载失败</p>
-                        <p class="text-sm">请确保服务已启动并可访问 Swagger 文档</p>
+                        <p class="text-sm text-center max-w-md">请确保服务已启动并可访问 Swagger 文档</p>
                     </div>
                 `;
             }
@@ -384,12 +531,10 @@
         function parseApis() {
             allApis = [];
             const paths = swaggerData.paths || {};
-            
             for (const [path, methods] of Object.entries(paths)) {
                 for (const [method, info] of Object.entries(methods)) {
                     allApis.push({
-                        path,
-                        method: method.toUpperCase(),
+                        path, method: method.toUpperCase(),
                         summary: info.summary || path,
                         description: info.description || '',
                         tags: info.tags || ['其他'],
@@ -405,23 +550,20 @@
 
         function renderTagNav() {
             const tags = {};
-            allApis.forEach(api => {
-                api.tags.forEach(tag => {
-                    if (!tags[tag]) tags[tag] = 0;
-                    tags[tag]++;
-                });
-            });
-
+            allApis.forEach(api => api.tags.forEach(tag => { if (!tags[tag]) tags[tag] = 0; tags[tag]++; }));
             const tagNav = document.getElementById('tagNav');
             tagNav.innerHTML = `
-                <button onclick="filterByTag(null)" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-accent-green bg-accent-green/10 border border-accent-green/20 mb-2 cursor-pointer transition-all duration-200 hover:bg-accent-green/20" data-tag="">
+                <button onclick="filterByTag(null)" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-accent-green bg-gradient-to-r from-accent-green/10 to-transparent border border-accent-green/20 mb-2 cursor-pointer transition-all duration-200 hover:from-accent-green/20" data-tag="">
                     <span class="flex items-center justify-between">
-                        <span>全部接口</span>
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                            全部接口
+                        </span>
                         <span class="text-xs font-mono bg-accent-green/20 px-2 py-0.5 rounded-lg">${allApis.length}</span>
                     </span>
                 </button>
                 ${Object.entries(tags).map(([tag, count]) => `
-                    <button onclick="filterByTag('${tag}')" class="w-full text-left px-4 py-2.5 rounded-xl text-sm text-light-500 dark:text-dark-400 hover:text-light-900 dark:hover:text-white hover:bg-light-100 dark:hover:bg-dark-700/50 mb-1 cursor-pointer transition-all duration-200" data-tag="${tag}">
+                    <button onclick="filterByTag('${tag}')" class="w-full text-left px-4 py-2.5 rounded-xl text-sm text-light-600 dark:text-dark-400 hover:text-light-900 dark:hover:text-white hover:bg-light-100/50 dark:hover:bg-dark-700/30 mb-1 cursor-pointer transition-all duration-200" data-tag="${tag}">
                         <span class="flex items-center justify-between">
                             <span>${tag}</span>
                             <span class="text-xs font-mono text-light-400 dark:text-dark-600">${count}</span>
@@ -433,74 +575,55 @@
 
         function populateMobileSelect() {
             const tags = {};
-            allApis.forEach(api => {
-                api.tags.forEach(tag => {
-                    if (!tags[tag]) tags[tag] = 0;
-                    tags[tag]++;
-                });
-            });
-
+            allApis.forEach(api => api.tags.forEach(tag => { if (!tags[tag]) tags[tag] = 0; tags[tag]++; }));
             const select = document.getElementById('mobileTagSelect');
             select.innerHTML = `<option value="">全部接口 (${allApis.length})</option>` +
-                Object.entries(tags).map(([tag, count]) => 
-                    `<option value="${tag}">${tag} (${count})</option>`
-                ).join('');
+                Object.entries(tags).map(([tag, count]) => `<option value="${tag}">${tag} (${count})</option>`).join('');
         }
 
         function filterByTag(tag) {
-            // Update sidebar active state
             document.querySelectorAll('#tagNav button').forEach(btn => {
                 const isActive = btn.dataset.tag === (tag || '');
-                if (isActive) {
-                    btn.className = 'w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-accent-green bg-accent-green/10 border border-accent-green/20 mb-2 cursor-pointer transition-all duration-200 hover:bg-accent-green/20';
-                } else {
-                    btn.className = 'w-full text-left px-4 py-2.5 rounded-xl text-sm text-light-500 dark:text-dark-400 hover:text-light-900 dark:hover:text-white hover:bg-light-100 dark:hover:bg-dark-700/50 mb-1 cursor-pointer transition-all duration-200';
-                }
+                btn.className = isActive 
+                    ? 'w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-accent-green bg-gradient-to-r from-accent-green/10 to-transparent border border-accent-green/20 mb-2 cursor-pointer transition-all duration-200 hover:from-accent-green/20'
+                    : 'w-full text-left px-4 py-2.5 rounded-xl text-sm text-light-600 dark:text-dark-400 hover:text-light-900 dark:hover:text-white hover:bg-light-100/50 dark:hover:bg-dark-700/30 mb-1 cursor-pointer transition-all duration-200';
             });
-            
-            // Update mobile select
             document.getElementById('mobileTagSelect').value = tag || '';
-            
-            const filtered = tag ? allApis.filter(api => api.tags.includes(tag)) : allApis;
-            renderApiList(filtered);
+            renderApiList(tag ? allApis.filter(api => api.tags.includes(tag)) : allApis);
         }
 
-        // Mobile select handler
-        document.getElementById('mobileTagSelect').addEventListener('change', (e) => {
-            filterByTag(e.target.value || null);
-        });
+        document.getElementById('mobileTagSelect').addEventListener('change', (e) => filterByTag(e.target.value || null));
 
         function renderApiList(apis = allApis) {
             const container = document.getElementById('apiList');
-            
             if (apis.length === 0) {
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-20 text-light-400 dark:text-dark-500">
-                        <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                        <div class="w-20 h-20 mb-6 bg-light-100 dark:bg-dark-800/50 rounded-2xl flex items-center justify-center">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
                         <p class="text-lg font-medium text-light-900 dark:text-white mb-2">未找到接口</p>
                         <p class="text-sm">尝试使用其他关键词搜索</p>
                     </div>
                 `;
                 return;
             }
-
             container.innerHTML = apis.map((api, idx) => {
                 const styles = methodStyles[api.method.toLowerCase()] || methodStyles.get;
                 const hasAuth = api.security && api.security.length > 0;
                 const globalIdx = allApis.indexOf(api);
-                
                 return `
-                    <div class="api-card bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl border border-light-200 dark:border-dark-700/50 overflow-hidden ${styles.hover} group cursor-pointer" onclick="openTestModal(${globalIdx})">
+                    <div class="api-card gradient-border glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 overflow-hidden group cursor-pointer" onclick="openTestModal(${globalIdx})">
                         <div class="p-5">
                             <div class="flex items-start gap-4">
-                                <span class="method-badge px-3 py-1.5 text-xs font-bold rounded-lg ${styles.bg} ${styles.text} flex-shrink-0 font-mono">
-                                    ${api.method}
-                                </span>
+                                <div class="w-16 h-8 bg-gradient-to-br ${styles.gradient} rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <span class="text-xs font-bold ${styles.text} font-mono">${api.method}</span>
+                                </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-1.5">
-                                        <code class="text-sm font-mono text-light-900 dark:text-white">${api.path}</code>
+                                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                                        <code class="text-sm font-mono text-light-900 dark:text-white font-medium">${api.path}</code>
                                         ${hasAuth ? `
                                             <span class="px-2 py-0.5 text-xs bg-accent-amber/10 text-accent-amber rounded-lg flex items-center gap-1" title="需要认证">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -510,14 +633,14 @@
                                             </span>
                                         ` : ''}
                                     </div>
-                                    <p class="text-sm text-light-500 dark:text-dark-400">${api.summary}</p>
-                                    ${api.description && api.description !== api.summary ? `<p class="text-xs text-light-400 dark:text-dark-500 mt-1.5">${api.description}</p>` : ''}
+                                    <p class="text-sm text-light-600 dark:text-dark-400">${api.summary}</p>
+                                    ${api.description && api.description !== api.summary ? `<p class="text-xs text-light-400 dark:text-dark-500 mt-1.5 line-clamp-2">${api.description}</p>` : ''}
                                 </div>
-                                <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                    <button onclick="event.stopPropagation(); openTestModal(${globalIdx})" class="px-3 py-1.5 text-sm font-medium text-accent-green bg-accent-green/10 rounded-lg hover:bg-accent-green/20 transition-colors duration-200 cursor-pointer">
+                                <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                                    <button onclick="event.stopPropagation(); openTestModal(${globalIdx})" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-accent-green to-accent-emerald rounded-lg hover:shadow-lg hover:shadow-accent-green/25 transition-all duration-200 cursor-pointer">
                                         测试
                                     </button>
-                                    <button onclick="event.stopPropagation(); copyApi(${globalIdx})" class="p-2 text-light-400 dark:text-dark-500 hover:text-light-900 dark:hover:text-white hover:bg-light-100 dark:hover:bg-dark-700 rounded-lg transition-colors duration-200 cursor-pointer" title="复制">
+                                    <button onclick="event.stopPropagation(); copyApi(${globalIdx})" class="p-2 text-light-400 dark:text-dark-500 hover:text-accent-green hover:bg-accent-green/10 rounded-lg transition-all duration-200 cursor-pointer" title="复制">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                         </svg>
@@ -525,10 +648,10 @@
                                 </div>
                             </div>
                             ${api.parameters.length > 0 ? `
-                                <div class="mt-4 pt-4 border-t border-light-200 dark:border-dark-700/50">
+                                <div class="mt-4 pt-4 border-t border-light-200/50 dark:border-dark-700/30">
                                     <div class="flex flex-wrap gap-2">
                                         ${api.parameters.slice(0, 6).map(p => `
-                                            <span class="px-2.5 py-1 text-xs bg-light-100 dark:bg-dark-700/50 text-light-500 dark:text-dark-400 rounded-lg font-mono">
+                                            <span class="px-2.5 py-1 text-xs bg-light-100/80 dark:bg-dark-700/30 text-light-600 dark:text-dark-400 rounded-lg font-mono border border-light-200/50 dark:border-dark-600/30">
                                                 <span class="text-light-400 dark:text-dark-500">${p.in}:</span> ${p.name}${p.required ? '<span class="text-accent-red ml-0.5">*</span>' : ''}
                                             </span>
                                         `).join('')}
@@ -549,21 +672,14 @@
             document.getElementById('otherCount').textContent = allApis.filter(a => !['GET', 'POST'].includes(a.method)).length;
         }
 
-        // Search with autocomplete
+        // 搜索功能
         const searchInput = document.getElementById('searchInput');
         const searchResults = document.getElementById('searchResults');
 
         searchInput.addEventListener('input', (e) => {
             const keyword = e.target.value.trim().toLowerCase();
-            
             clearTimeout(searchTimeout);
-            
-            if (!keyword) {
-                searchResults.classList.add('hidden');
-                renderApiList();
-                return;
-            }
-
+            if (!keyword) { searchResults.classList.add('hidden'); renderApiList(); return; }
             searchTimeout = setTimeout(() => {
                 const filtered = allApis.filter(api => 
                     api.path.toLowerCase().includes(keyword) ||
@@ -571,14 +687,13 @@
                     api.description.toLowerCase().includes(keyword) ||
                     api.tags.some(tag => tag.toLowerCase().includes(keyword))
                 );
-
                 if (filtered.length > 0 && keyword.length >= 2) {
-                    searchResults.innerHTML = filtered.slice(0, 8).map((api, idx) => {
+                    searchResults.innerHTML = filtered.slice(0, 8).map((api) => {
                         const styles = methodStyles[api.method.toLowerCase()] || methodStyles.get;
                         const globalIdx = allApis.indexOf(api);
                         return `
-                            <div onclick="selectSearchResult(${globalIdx})" class="px-4 py-3 hover:bg-light-100 dark:hover:bg-dark-700/50 cursor-pointer transition-colors duration-200 flex items-center gap-3">
-                                <span class="px-2 py-1 text-xs font-bold rounded ${styles.bg} ${styles.text} font-mono">${api.method}</span>
+                            <div onclick="selectSearchResult(${globalIdx})" class="px-4 py-3 hover:bg-light-100/50 dark:hover:bg-dark-700/30 cursor-pointer transition-colors duration-200 flex items-center gap-3 border-b border-light-100 dark:border-dark-700/30 last:border-0">
+                                <span class="px-2.5 py-1 text-xs font-bold rounded-lg ${styles.bg} ${styles.text} font-mono">${api.method}</span>
                                 <div class="flex-1 min-w-0">
                                     <code class="text-sm text-light-900 dark:text-white font-mono">${api.path}</code>
                                     <p class="text-xs text-light-500 dark:text-dark-500 truncate">${api.summary}</p>
@@ -588,56 +703,30 @@
                     }).join('');
                     searchResults.classList.remove('hidden');
                 } else {
-                    searchResults.innerHTML = `
-                        <div class="px-4 py-6 text-center text-light-400 dark:text-dark-500">
-                            <p class="text-sm">未找到匹配的接口</p>
-                            <p class="text-xs mt-1">尝试搜索: users, blogs, auth</p>
-                        </div>
-                    `;
+                    searchResults.innerHTML = `<div class="px-4 py-6 text-center text-light-400 dark:text-dark-500"><p class="text-sm">未找到匹配的接口</p></div>`;
                     searchResults.classList.remove('hidden');
                 }
-
                 renderApiList(filtered);
             }, 150);
         });
 
-        function selectSearchResult(idx) {
-            searchResults.classList.add('hidden');
-            searchInput.value = '';
-            openTestModal(idx);
-        }
-
-        // Hide search results on click outside
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-                searchResults.classList.add('hidden');
-            }
-        });
-
-        // Keyboard shortcut for search
+        function selectSearchResult(idx) { searchResults.classList.add('hidden'); searchInput.value = ''; openTestModal(idx); }
+        document.addEventListener('click', (e) => { if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) searchResults.classList.add('hidden'); });
         document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                searchInput.focus();
-            }
-            if (e.key === 'Escape') {
-                searchResults.classList.add('hidden');
-                closeTestModal();
-            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); searchInput.focus(); }
+            if (e.key === 'Escape') { searchResults.classList.add('hidden'); closeTestModal(); }
         });
 
-        // Test Modal
+        // 测试弹窗
         function openTestModal(idx) {
             currentApi = allApis[idx];
             const styles = methodStyles[currentApi.method.toLowerCase()] || methodStyles.get;
-            
             document.getElementById('modalTitle').textContent = currentApi.summary;
             document.getElementById('modalPath').textContent = currentApi.path;
             document.getElementById('modalMethod').textContent = currentApi.method;
-            document.getElementById('modalMethod').className = `px-3 py-1.5 text-xs font-bold rounded-lg method-badge ${styles.bg} ${styles.text} font-mono`;
+            document.getElementById('modalMethod').className = `px-3 py-1.5 text-xs font-bold rounded-lg ${styles.bg} ${styles.text} font-mono`;
             document.getElementById('modalUrl').value = API_BASE + '/api' + currentApi.path;
             
-            // Query Params
             const queryParams = currentApi.parameters.filter(p => p.in === 'query');
             const paramsSection = document.getElementById('paramsSection');
             const paramsContainer = document.getElementById('paramsContainer');
@@ -645,158 +734,96 @@
                 paramsSection.classList.remove('hidden');
                 paramsContainer.innerHTML = queryParams.map(p => `
                     <div class="flex gap-2 items-center">
-                        <input type="text" value="${p.name}" class="w-28 px-3 py-2 bg-light-200 dark:bg-dark-800 rounded-lg text-xs font-mono text-light-500 dark:text-dark-400" readonly>
+                        <input type="text" value="${p.name}" class="w-28 px-3 py-2 bg-light-200/80 dark:bg-dark-700/50 rounded-lg text-xs font-mono text-light-500 dark:text-dark-400" readonly>
                         <input type="text" id="param_${p.name}" class="flex-1 px-3 py-2 bg-white dark:bg-dark-700/50 border border-light-200 dark:border-dark-600/50 rounded-lg text-xs font-mono text-light-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 cursor-text" placeholder="${p.description || p.name}${p.required ? ' (必填)' : ''}">
                     </div>
                 `).join('');
-            } else {
-                paramsSection.classList.add('hidden');
-            }
+            } else { paramsSection.classList.add('hidden'); }
             
-            // Request Body
             const bodySection = document.getElementById('bodySection');
-            const hasBody = ['POST', 'PUT', 'PATCH'].includes(currentApi.method);
-            if (hasBody) {
+            if (['POST', 'PUT', 'PATCH'].includes(currentApi.method)) {
                 bodySection.classList.remove('hidden');
                 const bodyParam = currentApi.parameters.find(p => p.in === 'body');
                 document.getElementById('requestBody').value = bodyParam ? JSON.stringify(bodyParam.schema || {}, null, 2) : '{}';
-            } else {
-                bodySection.classList.add('hidden');
-            }
+            } else { bodySection.classList.add('hidden'); }
             
-            // Reset response
             document.getElementById('responseStatus').textContent = '--';
-            document.getElementById('responseStatus').className = 'px-2 py-1 text-xs font-mono font-medium rounded-lg bg-light-200 dark:bg-dark-700 text-light-500 dark:text-dark-400';
+            document.getElementById('responseStatus').className = 'px-2.5 py-1 text-xs font-mono font-medium rounded-lg bg-light-200/80 dark:bg-dark-700/50 text-light-500 dark:text-dark-400';
             document.getElementById('responseTime').textContent = '--';
             document.getElementById('responseBody').textContent = '点击"发送请求"查看响应';
-            
             document.getElementById('testModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
 
-        function closeTestModal() {
-            document.getElementById('testModal').classList.add('hidden');
-            document.body.style.overflow = '';
-            currentApi = null;
-        }
+        function closeTestModal() { document.getElementById('testModal').classList.add('hidden'); document.body.style.overflow = ''; currentApi = null; }
 
         async function sendRequest() {
             if (!currentApi) return;
-            
             const btn = document.getElementById('sendBtn');
             btn.disabled = true;
-            btn.innerHTML = `
-                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                请求中...
-            `;
+            btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="relative">请求中...</span>`;
             
             let url = document.getElementById('modalUrl').value;
             const queryParams = currentApi.parameters.filter(p => p.in === 'query');
             if (queryParams.length > 0) {
                 const params = new URLSearchParams();
-                queryParams.forEach(p => {
-                    const val = document.getElementById(`param_${p.name}`)?.value;
-                    if (val) params.append(p.name, val);
-                });
+                queryParams.forEach(p => { const val = document.getElementById(`param_${p.name}`)?.value; if (val) params.append(p.name, val); });
                 const qs = params.toString();
                 if (qs) url += '?' + qs;
             }
             
-            const options = {
-                method: currentApi.method,
-                headers: { 'Content-Type': 'application/json' }
-            };
-            
+            const options = { method: currentApi.method, headers: { 'Content-Type': 'application/json' } };
             const auth = document.getElementById('authHeader').value.trim();
             if (auth) options.headers['Authorization'] = auth;
-            
             if (['POST', 'PUT', 'PATCH'].includes(currentApi.method)) {
                 const body = document.getElementById('requestBody').value;
-                try {
-                    options.body = JSON.stringify(JSON.parse(body));
-                } catch (e) {
-                    options.body = body;
-                }
+                try { options.body = JSON.stringify(JSON.parse(body)); } catch (e) { options.body = body; }
             }
             
             const startTime = performance.now();
-            
             try {
                 const res = await fetch(url, options);
-                const endTime = performance.now();
-                const duration = Math.round(endTime - startTime);
-                
+                const duration = Math.round(performance.now() - startTime);
                 document.getElementById('responseTime').textContent = duration + 'ms';
                 document.getElementById('responseStatus').textContent = res.status + ' ' + res.statusText;
-                document.getElementById('responseStatus').className = `px-2 py-1 text-xs font-mono font-medium rounded-lg ${res.ok ? 'bg-accent-green/10 text-accent-green' : 'bg-accent-red/10 text-accent-red'}`;
-                
+                document.getElementById('responseStatus').className = `px-2.5 py-1 text-xs font-mono font-medium rounded-lg ${res.ok ? 'bg-accent-green/10 text-accent-green' : 'bg-accent-red/10 text-accent-red'}`;
                 const data = await res.json();
                 document.getElementById('responseBody').textContent = JSON.stringify(data, null, 2);
             } catch (err) {
                 document.getElementById('responseStatus').textContent = 'Error';
-                document.getElementById('responseStatus').className = 'px-2 py-1 text-xs font-mono font-medium rounded-lg bg-accent-red/10 text-accent-red';
+                document.getElementById('responseStatus').className = 'px-2.5 py-1 text-xs font-mono font-medium rounded-lg bg-accent-red/10 text-accent-red';
                 document.getElementById('responseBody').textContent = err.message;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    发送请求
-                `;
+                btn.innerHTML = `<span class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></span><svg class="w-4 h-4 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="relative">发送请求</span>`;
             }
         }
 
         function copyApi(idx) {
             const api = allApis[idx];
-            const text = `${api.method} ${API_BASE}/api${api.path}`;
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('已复制到剪贴板');
-            });
+            navigator.clipboard.writeText(`${api.method} ${API_BASE}/api${api.path}`).then(() => showToast('已复制到剪贴板'));
         }
 
         function copyResponse() {
-            const responseText = document.getElementById('responseBody').textContent;
-            navigator.clipboard.writeText(responseText).then(() => {
-                showToast('响应已复制');
-            });
+            navigator.clipboard.writeText(document.getElementById('responseBody').textContent).then(() => showToast('响应已复制'));
         }
 
         function showToast(msg) {
             const toast = document.createElement('div');
-            toast.className = 'fixed bottom-6 right-6 px-4 py-3 bg-white dark:bg-dark-800 border border-light-200 dark:border-dark-700 text-light-900 dark:text-white text-sm rounded-xl shadow-2xl z-[60] animate-fade-in flex items-center gap-2';
-            toast.innerHTML = `
-                <svg class="w-4 h-4 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                ${msg}
-            `;
+            toast.className = 'fixed bottom-6 right-6 px-5 py-3 glass border border-light-200/50 dark:border-dark-700/30 text-light-900 dark:text-white text-sm rounded-xl shadow-2xl z-[60] animate-slide-up flex items-center gap-3';
+            toast.innerHTML = `<div class="w-6 h-6 bg-accent-green/10 rounded-lg flex items-center justify-center"><svg class="w-4 h-4 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div>${msg}`;
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(10px)'; setTimeout(() => toast.remove(), 200); }, 2000);
         }
 
-        // Click outside modal to close
-        document.getElementById('testModal').addEventListener('click', e => {
-            if (e.target === e.currentTarget) closeTestModal();
-        });
+        document.getElementById('testModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeTestModal(); });
 
-        // Theme toggle function
         function toggleTheme() {
             const html = document.documentElement;
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
+            if (html.classList.contains('dark')) { html.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
+            else { html.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
         }
 
-        // Initialize
         loadSwagger();
     </script>
 </body>
