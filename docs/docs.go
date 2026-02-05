@@ -928,7 +928,7 @@ const docTemplate = `{
         },
         "/owner/visits": {
             "get": {
-                "description": "获取博客主人指定天数内每天访问次数的统计信息",
+                "description": "获取博客主人指定天数内每天访问次数的统计信息，如果是博主访问则自动增加访问计数",
                 "produces": [
                     "application/json"
                 ],
@@ -942,6 +942,12 @@ const docTemplate = `{
                         "description": "获取最近多少天的数据，默认7天",
                         "name": "days",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer Token（博主访问时传入可增加访问计数）",
+                        "name": "Authorization",
+                        "in": "header"
                     }
                 ],
                 "responses": {
