@@ -84,6 +84,15 @@ func registerDualRoutes(
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		})
 
+		// Token 验证路由
+		router.Handle(prefix+"/auth/verify", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				authHandler.VerifyToken(w, r)
+				return
+			}
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		})
+
 		// 用户路由
 		router.Handle(prefix+"/users", func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {

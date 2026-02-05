@@ -2,12 +2,16 @@ package handler
 
 import (
 	"encoding/json"
+	"myblog_last_new/internal/middleware"
 	"myblog_last_new/internal/repository"
 	"myblog_last_new/internal/response"
 	"myblog_last_new/pkg/models"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // VisitHandler 处理访问相关请求
@@ -137,13 +141,19 @@ func (h *VisitHandler) LogGuestRecord(w http.ResponseWriter, r *http.Request) {
 
 // GetOwnerVisitStats godoc
 // @Summary 获取博客主人访问统计
-// @Description 获取博客主人指定天数内每天访问次数的统计信息
+// @Description 获取博客主人指定天数内每天访问次数的统计信息，如果是博主访问则自动增加访问计数
 // @Tags owner
 // @Produce  json
 // @Param   days   query    int     false  "获取最近多少天的数据，默认7天"
+// @Param   Authorization   header    string     false  "Bearer Token（博主访问时传入可增加访问计数）"
 // @Success 200 {object} response.APIResponse{data=object}
 // @Router /owner/visits [get]
 func (h *VisitHandler) GetOwnerVisitStats(w http.ResponseWriter, r *http.Request) {
+	// 检查是否是博主访问，如果是则记录访问
+	if isOwner := h.checkIsOwner(r); isOwner {
+		go h.ownerRepo.RecordVisit()
+	}
+
 	days := r.URL.Query().Get("days")
 	if days == "" {
 		days = "7"
@@ -160,6 +170,28 @@ func (h *VisitHandler) GetOwnerVisitStats(w http.ResponseWriter, r *http.Request
 		"total_visits": totalVisits,
 		"days":         days,
 	})
+}
+
+// checkIsOwner 检查请求是否来自博主
+func (h *VisitHandler) checkIsOwner(r *http.Request) bool {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return false
+	}
+
+	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+	claims := &middleware.Claims{}
+
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte("my_secret_key"), nil
+	})
+
+	if err != nil || !token.Valid {
+		return false
+	}
+
+	// 检查是否是博主（普通登录或 GitHub 登录）
+	return claims.Username == "harrio" || claims.Username == "github_156180607"
 }
 
 // GetOwnerTodayVisits godoc

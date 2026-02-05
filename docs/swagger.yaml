@@ -282,6 +282,34 @@ paths:
       summary: 使用授权码进行 GitHub 登录
       tags:
       - auth
+  /auth/verify:
+    get:
+      description: 验证 JWT Token 是否有效，返回当前用户信息
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token 有效，返回用户信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "401":
+          description: Token 无效或已过期
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: 验证 Token 有效性
+      tags:
+      - auth
   /blogs:
     get:
       description: 根据分类ID分页获取博客列表，支持关键词搜索。
