@@ -190,8 +190,8 @@ func (h *VisitHandler) checkIsOwner(r *http.Request) bool {
 		return false
 	}
 
-	// 检查是否是博主（普通登录或 GitHub 登录）
-	return claims.Username == "harrio" || claims.Username == "github_156180607"
+	// 检查是否是博主（普通登录或 GitHub 登录或邮箱登录）
+	return claims.Username == "harrio" || claims.Username == "github_156180607" || claims.Username == "harrithy@github.com"
 }
 
 // GetOwnerTodayVisits godoc

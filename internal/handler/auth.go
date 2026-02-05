@@ -125,8 +125,9 @@ func (h *AuthHandler) VerifyToken(w http.ResponseWriter, r *http.Request) {
 
 	// 检查是否是博主（支持普通登录和 GitHub 登录）
 	// 普通登录：account == "harrio"
-	// GitHub 登录：account 以 "github_156180607" 开头（博主的 GitHub ID）
-	isOwner := claims.Username == "harrio" || claims.Username == "github_156180607"
+	// GitHub 登录：account == "github_156180607"（博主的 GitHub ID）
+	// 邮箱登录：account == "harrithy@github.com"
+	isOwner := claims.Username == "harrio" || claims.Username == "github_156180607" || claims.Username == "harrithy@github.com"
 
 	var userData map[string]interface{}
 	if isOwner {
