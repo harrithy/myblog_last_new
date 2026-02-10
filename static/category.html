@@ -863,11 +863,916 @@
         .form-mode-indicator button:hover {
             background: #fef3c7;
         }
+
+        /* UI Refactor 2026 */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            --primary-color: #0891b2;
+            --primary-dark: #0e7490;
+            --success-color: #16a34a;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --bg-light: #f8fdff;
+            --border-color: #dbeafe;
+            --shadow-lg: 0 18px 36px -28px rgba(15, 23, 42, 0.62), 0 16px 28px -28px rgba(8, 145, 178, 0.7);
+            --radius-sm: 12px;
+            --radius-md: 16px;
+            --radius-lg: 22px;
+        }
+
+        body {
+            position: relative;
+            overflow-x: hidden;
+            color: var(--text-primary);
+            line-height: 1.5;
+            background:
+                radial-gradient(circle at 8% 8%, rgba(34, 211, 238, 0.22) 0, transparent 40%),
+                radial-gradient(circle at 88% 14%, rgba(8, 145, 178, 0.18) 0, transparent 42%),
+                linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 999px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            width: 320px;
+            height: 320px;
+            left: -80px;
+            top: -120px;
+            background: radial-gradient(circle, rgba(8, 145, 178, 0.22), rgba(8, 145, 178, 0));
+        }
+
+        body::after {
+            width: 340px;
+            height: 340px;
+            right: -100px;
+            bottom: -160px;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.2), rgba(34, 211, 238, 0));
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1320px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+
+        .page-title-wrap h1 {
+            color: #083344;
+            font-size: clamp(2rem, 2.8vw, 2.8rem);
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+            text-align: left;
+            text-shadow: none;
+            margin-bottom: 0;
+        }
+
+        .page-subtitle {
+            margin-top: 10px;
+            max-width: 620px;
+            color: #0f766e;
+            font-size: 0.96rem;
+        }
+
+        .page-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .metric-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(8, 145, 178, 0.22);
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            font-weight: 600;
+            box-shadow: 0 8px 16px -14px rgba(15, 23, 42, 0.5);
+        }
+
+        .metric-icon,
+        .inline-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        .metric-icon svg,
+        .inline-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.9;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .main-content {
+            grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+            gap: 22px;
+            align-items: start;
+        }
+
+        .card {
+            background: linear-gradient(180deg, #ffffff 0%, #fafeff 100%);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+            padding: 26px;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(8, 145, 178, 0.64), rgba(34, 211, 238, 0.2), transparent 82%);
+        }
+
+        .card-header h2 {
+            font-size: 1.16rem;
+            letter-spacing: -0.01em;
+        }
+
+        .card-header h2::before {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--primary-color), #22d3ee);
+            box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.15);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea,
+        .search-wrapper input,
+        .tags-input-wrapper {
+            border-width: 1px;
+            border-color: var(--border-color);
+            border-radius: var(--radius-sm);
+            min-height: 44px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea,
+        .search-wrapper input {
+            color: var(--text-primary);
+            font-size: 0.94rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder,
+        .search-wrapper input::placeholder {
+            color: #94a3b8;
+        }
+
+        .form-group input:hover,
+        .form-group select:hover,
+        .form-group textarea:hover,
+        .search-wrapper input:hover {
+            border-color: #bae6fd;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus,
+        .search-wrapper input:focus,
+        .tags-input-wrapper:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.16);
+        }
+
+        .form-group label {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .tags-input-wrapper .tag {
+            border: 1px solid #bae6fd;
+            background: #ecfeff;
+            color: #0f766e;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .tags-input-wrapper .tag .remove-tag {
+            background: rgba(15, 118, 110, 0.13);
+            color: #0f766e;
+        }
+
+        .tags-input-wrapper .tag .remove-tag:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+        }
+
+        .tags-suggestions {
+            border-width: 1px;
+            box-shadow: 0 12px 22px -20px rgba(2, 132, 199, 0.7);
+        }
+
+        .tags-suggestions-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8fdff;
+            border-bottom: 1px solid var(--border-color);
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .tags-suggestions .suggestion-item:hover {
+            background: rgba(34, 211, 238, 0.12);
+        }
+
+        .tags-suggestions .suggestion-item.selected {
+            background: rgba(8, 145, 178, 0.12);
+        }
+
+        .type-selector {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .type-option {
+            min-height: 102px;
+            border-width: 1px;
+            padding: 12px 10px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .type-option:hover {
+            border-color: var(--primary-color);
+            background: #f0fbff;
+            box-shadow: 0 10px 18px -18px rgba(8, 145, 178, 0.55);
+        }
+
+        .type-option.active {
+            border-color: var(--primary-color);
+            background: linear-gradient(180deg, rgba(236, 254, 255, 0.9) 0%, rgba(224, 242, 254, 0.75) 100%);
+            box-shadow: 0 10px 24px -20px rgba(8, 145, 178, 0.75);
+        }
+
+        .type-option .icon {
+            width: 42px;
+            height: 42px;
+            margin: 0 auto 8px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ecfeff;
+            border: 1px solid #bae6fd;
+            color: var(--primary-color);
+            font-size: inherit;
+        }
+
+        .type-option .icon svg {
+            width: 21px;
+            height: 21px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .type-option.active .icon {
+            color: #ffffff;
+            border-color: transparent;
+            background: linear-gradient(135deg, var(--primary-color), #22d3ee);
+        }
+
+        .btn {
+            min-height: 44px;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            font-size: 0.92rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+        }
+
+        .btn:focus-visible,
+        .btn-icon:focus-visible,
+        .action-btn:focus-visible,
+        .modal-close:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.2);
+        }
+
+        .btn-primary {
+            width: auto;
+            border-color: rgba(8, 145, 178, 0.25);
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            box-shadow: 0 10px 22px -18px rgba(8, 145, 178, 0.6);
+        }
+
+        .btn-primary:hover {
+            transform: none;
+            background: linear-gradient(135deg, #0ea5c6 0%, #0f766e 100%);
+            box-shadow: 0 12px 20px -18px rgba(8, 145, 178, 0.72);
+        }
+
+        .btn-secondary {
+            border-color: var(--border-color);
+            background: #ffffff;
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: #f0fbff;
+            border-color: var(--primary-color);
+            color: var(--primary-dark);
+        }
+
+        .btn-group {
+            gap: 10px;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            color: var(--text-secondary);
+            font-size: inherit;
+        }
+
+        .btn-icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.9;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .btn-icon:hover {
+            background: #f0fbff;
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .upload-wrapper input {
+            min-width: 0;
+        }
+
+        .upload-btn {
+            min-height: 44px;
+            border: 1px solid #bae6fd;
+            background: #ecfeff;
+            color: #0f766e;
+            font-size: 0.84rem;
+            font-weight: 700;
+            padding: 0 14px;
+        }
+
+        .upload-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.9;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .upload-btn:hover {
+            transform: none;
+            background: #cffafe;
+            border-color: var(--primary-color);
+            box-shadow: none;
+            color: #155e75;
+        }
+
+        .search-wrapper {
+            margin-bottom: 16px;
+        }
+
+        .search-wrapper input {
+            padding-left: 42px;
+        }
+
+        .search-wrapper .search-icon {
+            width: 17px;
+            height: 17px;
+            left: 14px;
+            color: #64748b;
+            font-size: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-wrapper .search-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.9;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .stats-bar {
+            margin-bottom: 16px;
+            gap: 8px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-light);
+        }
+
+        .stat-item {
+            padding: 7px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: #ffffff;
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-icon {
+            width: 15px;
+            height: 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+        }
+
+        .stat-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.9;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .stat-item strong {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .category-tree {
+            max-height: min(68vh, 690px);
+            padding-right: 6px;
+        }
+
+        .category-tree::-webkit-scrollbar-track {
+            background: rgba(148, 163, 184, 0.16);
+        }
+
+        .category-tree::-webkit-scrollbar-thumb {
+            background: rgba(8, 145, 178, 0.36);
+            border-radius: 999px;
+        }
+
+        .tree-item {
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            padding: 13px 14px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .tree-item:hover {
+            background: #ffffff;
+            border-color: #bae6fd;
+            box-shadow: 0 14px 24px -24px rgba(8, 145, 178, 0.65);
+        }
+
+        .tree-item-header {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tree-node-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            border: 1px solid var(--border-color);
+            background: #ecfeff;
+            color: var(--primary-color);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .tree-node-icon svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .tree-item .name {
+            font-weight: 600;
+            min-width: 130px;
+            overflow-wrap: anywhere;
+        }
+
+        .tree-item .url-hint {
+            max-width: 230px;
+            color: #64748b;
+        }
+
+        .tree-item .type-badge {
+            padding: 3px 9px;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            border: 1px solid transparent;
+        }
+
+        .type-badge.folder {
+            background: #e0f2fe;
+            border-color: #bae6fd;
+            color: #0369a1;
+        }
+
+        .type-badge.article {
+            background: #dcfce7;
+            border-color: #bbf7d0;
+            color: #15803d;
+        }
+
+        .tree-item-actions {
+            margin-left: auto;
+            gap: 6px;
+            opacity: 0.85;
+        }
+
+        .action-btn {
+            width: 34px;
+            height: 34px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: inherit;
+        }
+
+        .action-btn svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .action-btn.select {
+            color: #d97706;
+        }
+
+        .action-btn.select:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            background: rgba(254, 243, 199, 0.65);
+        }
+
+        .action-btn.edit {
+            color: var(--primary-color);
+        }
+
+        .action-btn.edit:hover {
+            border-color: rgba(8, 145, 178, 0.3);
+            background: rgba(224, 242, 254, 0.82);
+        }
+
+        .action-btn.delete {
+            color: #dc2626;
+        }
+
+        .action-btn.delete:hover {
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(254, 226, 226, 0.8);
+        }
+
+        .tree-children {
+            margin-left: 16px;
+            padding-left: 12px;
+            border-left: 1px dashed #bae6fd;
+        }
+
+        .empty-state {
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-light);
+            color: #64748b;
+            padding: 52px 18px;
+        }
+
+        .empty-state .icon {
+            width: 46px;
+            height: 46px;
+            margin: 0 auto 12px;
+            opacity: 0.85;
+            font-size: inherit;
+            color: var(--primary-color);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-state .icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .loading {
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-light);
+            color: #64748b;
+            padding: 52px 20px;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border-color: #bae6fd;
+            border-top-color: var(--primary-color);
+        }
+
+        .preview-item {
+            border-width: 1px;
+            border-color: var(--border-color);
+            border-radius: var(--radius-sm);
+        }
+
+        .preview-item .file-info {
+            font-size: 0.82rem;
+            max-width: 230px;
+        }
+
+        .preview-item .file-info span:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preview-item .preview-icon {
+            width: 14px;
+            height: 14px;
+            color: var(--primary-color);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .preview-item .preview-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .preview-item .remove-btn {
+            width: 22px;
+            height: 22px;
+            opacity: 0;
+            background: rgba(15, 23, 42, 0.66);
+            transition: opacity 0.2s ease, background-color 0.2s ease;
+        }
+
+        .preview-item .remove-btn:hover {
+            background: rgba(220, 38, 38, 0.78);
+        }
+
+        .form-mode-indicator {
+            border: 1px solid #fcd34d;
+            background: #fef9c3;
+            color: #854d0e;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+        }
+
+        .form-mode-indicator button {
+            border-color: #f59e0b;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #92400e;
+            font-weight: 700;
+        }
+
+        .modal-overlay {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+            transition: opacity 0.24s ease, visibility 0.24s ease;
+        }
+
+        .modal {
+            width: min(560px, 100%);
+            border: 1px solid rgba(186, 230, 253, 0.8);
+            box-shadow: 0 34px 55px -30px rgba(2, 6, 23, 0.58);
+            transform: translateY(12px) scale(0.97);
+        }
+
+        .modal-overlay.show .modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+        }
+
+        .modal-close:hover {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+
+        .toast {
+            top: 22px;
+            right: 22px;
+            bottom: auto;
+            min-width: 230px;
+            max-width: min(420px, calc(100vw - 32px));
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 12px 14px;
+            transform: translateX(calc(100% + 24px));
+            transition: transform 0.24s ease;
+            box-shadow: 0 14px 30px -16px rgba(15, 23, 42, 0.68);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+        }
+
+        .toast .toast-icon {
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .toast .toast-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        @media (max-width: 1140px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .page-metrics {
+                justify-content: flex-start;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            body {
+                padding: 14px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .upload-wrapper,
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .upload-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .type-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .toast {
+                top: auto;
+                bottom: 14px;
+                right: 14px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>分类管理</h1>
+        <header class="page-header">
+            <div class="page-title-wrap">
+                <h1>分类管理</h1>
+                <p class="page-subtitle">维护目录结构、文章入口与标签体系，让内容归档更清晰。</p>
+            </div>
+            <div class="page-metrics" aria-label="页面提示">
+                <span class="metric-pill">
+                    <span class="metric-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path>
+                            <path d="M8 5v14"></path>
+                        </svg>
+                    </span>
+                    分类树实时刷新
+                </span>
+                <span class="metric-pill">
+                    <span class="metric-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M8 9h8"></path>
+                            <path d="M8 13h5"></path>
+                            <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
+                        </svg>
+                    </span>
+                    支持 MD 文件上传
+                </span>
+            </div>
+        </header>
         
         <div class="main-content">
             <!-- 创建/编辑分类表单 -->
@@ -885,7 +1790,7 @@
                     <input type="hidden" id="editingId" value="">
 
                     <div class="form-group">
-                        <label>分类名称 <span class="required">*</span></label>
+                        <label for="categoryName">分类名称 <span class="required">*</span></label>
                         <input type="text" id="categoryName" placeholder="请输入分类名称" required>
                     </div>
 
@@ -893,12 +1798,23 @@
                         <label>分类类型 <span class="required">*</span></label>
                         <div class="type-selector">
                             <div class="type-option active" data-type="folder">
-                                <div class="icon">📁</div>
+                                <div class="icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6H9l2 2h7.5A2.5 2.5 0 0 1 21 10.5v6A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path>
+                                    </svg>
+                                </div>
                                 <div class="label">文件夹</div>
                                 <div class="desc">可包含子分类</div>
                             </div>
                             <div class="type-option" data-type="article">
-                                <div class="icon">📄</div>
+                                <div class="icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
+                                        <path d="M14 3v5h5"></path>
+                                        <path d="M9 13h6"></path>
+                                        <path d="M9 17h6"></path>
+                                    </svg>
+                                </div>
                                 <div class="label">文章</div>
                                 <div class="desc">链接到文章</div>
                             </div>
@@ -907,11 +1823,16 @@
                     </div>
 
                     <div class="form-group conditional-field" id="urlField">
-                        <label>文章链接</label>
+                        <label for="categoryUrl">文章链接</label>
                         <div class="upload-wrapper">
                             <input type="text" id="categoryUrl" placeholder="文章URL（可直接输入或上传MD文件）">
                             <label class="upload-btn" for="mdFileInput" id="mdUploadBtn">
-                                📝 上传MD
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
+                                    <path d="M14 3v5h5"></path>
+                                    <path d="M9 13h6"></path>
+                                </svg>
+                                <span>上传MD</span>
                                 <input type="file" id="mdFileInput" accept=".md,.markdown" style="display: none;">
                             </label>
                         </div>
@@ -919,11 +1840,16 @@
                     </div>
 
                     <div class="form-group">
-                        <label>封面图片</label>
+                        <label for="categoryImgUrl">封面图片</label>
                         <div class="upload-wrapper">
                             <input type="text" id="categoryImgUrl" placeholder="图片URL（可直接输入或上传图片）">
                             <label class="upload-btn" for="imgFileInput" id="imgUploadBtn">
-                                📷 上传图片
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path>
+                                    <path d="M8 13l2.5-3 3 4 2-2.5L19 15"></path>
+                                    <circle cx="9" cy="9" r="1.3"></circle>
+                                </svg>
+                                <span>上传图片</span>
                                 <input type="file" id="imgFileInput" accept="image/*" style="display: none;">
                             </label>
                         </div>
@@ -931,12 +1857,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label>分类描述</label>
+                        <label for="categoryDescription">分类描述</label>
                         <textarea id="categoryDescription" placeholder="请输入分类描述（可选）" rows="3"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label>分类标签</label>
+                        <label for="tagsInput">分类标签</label>
                         <div class="tags-input-container">
                             <div class="tags-input-wrapper" id="tagsInputWrapper" onclick="document.getElementById('tagsInput').focus()">
                                 <input type="text" id="tagsInput" placeholder="输入标签后按 Enter 添加">
@@ -947,14 +1873,14 @@
                     </div>
 
                     <div class="form-group">
-                        <label>父分类</label>
+                        <label for="parentCategory">父分类</label>
                         <select id="parentCategory">
                             <option value="">无（顶级分类）</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label>排序顺序</label>
+                        <label for="sortOrder">排序顺序</label>
                         <input type="number" id="sortOrder" value="0" min="0" placeholder="数字越小越靠前">
                     </div>
 
@@ -971,22 +1897,48 @@
                 <div class="card-header">
                     <h2>分类列表</h2>
                     <div class="header-actions">
-                        <button class="btn-icon refresh" onclick="loadCategories()" title="刷新列表">🔄</button>
+                        <button class="btn-icon refresh" onclick="loadCategories()" title="刷新列表" aria-label="刷新分类列表">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+                                <path d="M21 3v6h-6"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
                 <div class="search-wrapper">
-                    <span class="search-icon">🔍</span>
+                    <span class="search-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <path d="m20 20-3.5-3.5"></path>
+                        </svg>
+                    </span>
                     <input type="text" id="searchInput" placeholder="搜索分类...">
                 </div>
 
                 <div id="statsBar" class="stats-bar">
                     <div class="stat-item">
-                        <span>📁 文件夹:</span>
+                        <span class="stat-label">
+                            <span class="stat-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6H9l2 2h7.5A2.5 2.5 0 0 1 21 10.5v6A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path>
+                                </svg>
+                            </span>
+                            文件夹
+                        </span>
                         <strong id="folderCount">0</strong>
                     </div>
                     <div class="stat-item">
-                        <span>📄 文章:</span>
+                        <span class="stat-label">
+                            <span class="stat-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
+                                    <path d="M14 3v5h5"></path>
+                                    <path d="M9 13h6"></path>
+                                </svg>
+                            </span>
+                            文章
+                        </span>
                         <strong id="articleCount">0</strong>
                     </div>
                 </div>
@@ -1011,23 +1963,23 @@
             <form id="editForm">
                 <input type="hidden" id="modalEditId">
                 <div class="form-group">
-                    <label>分类名称 <span class="required">*</span></label>
+                    <label for="modalCategoryName">分类名称 <span class="required">*</span></label>
                     <input type="text" id="modalCategoryName" required>
                 </div>
                 <div class="form-group" id="modalUrlField">
-                    <label>文章链接</label>
+                    <label for="modalCategoryUrl">文章链接</label>
                     <input type="text" id="modalCategoryUrl">
                 </div>
                 <div class="form-group">
-                    <label>封面图片</label>
+                    <label for="modalCategoryImgUrl">封面图片</label>
                     <input type="text" id="modalCategoryImgUrl" placeholder="图片URL">
                 </div>
                 <div class="form-group">
-                    <label>分类描述</label>
+                    <label for="modalCategoryDescription">分类描述</label>
                     <textarea id="modalCategoryDescription" placeholder="请输入分类描述（可选）" rows="3"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>分类标签</label>
+                    <label for="modalTagsInput">分类标签</label>
                     <div class="tags-input-container">
                         <div class="tags-input-wrapper" id="modalTagsInputWrapper" onclick="document.getElementById('modalTagsInput').focus()">
                             <input type="text" id="modalTagsInput" placeholder="输入标签后按 Enter 添加">
@@ -1037,7 +1989,7 @@
                     <div class="tags-hint">按 Enter 或逗号添加标签</div>
                 </div>
                 <div class="form-group">
-                    <label>排序顺序</label>
+                    <label for="modalSortOrder">排序顺序</label>
                     <input type="number" id="modalSortOrder" value="0" min="0">
                 </div>
                 <div class="btn-group">
@@ -1059,6 +2011,28 @@
         let formTags = [];      // 创建表单的标签
         let modalTags = [];     // 编辑弹窗的标签
         let allExistingTags = [];  // 所有已存在的标签（带使用计数）
+
+        const ICONS = {
+            tag: '<svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3.4 13.4A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8z"></path><circle cx="8.5" cy="8.5" r="1.2"></circle></svg>',
+            success: '<svg viewBox="0 0 24 24"><path d="m5 12 4.2 4.2L19 6.5"></path></svg>',
+            error: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>',
+            empty: '<svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><path d="m8 11 2.2 2.2L14 9.5"></path></svg>',
+            search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>',
+            alert: '<svg viewBox="0 0 24 24"><path d="M10.3 3.5 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.5a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4"></path><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"></circle></svg>',
+            folder: '<svg viewBox="0 0 24 24"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6H9l2 2h7.5A2.5 2.5 0 0 1 21 10.5v6A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path></svg>',
+            file: '<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path><path d="M9 13h6"></path></svg>',
+            pin: '<svg viewBox="0 0 24 24"><path d="m14 4 6 6-2.5.5-2.5 2.5-.5 2.5-6-6 2.5-.5 2.5-2.5z"></path><path d="m6 14-2 6 6-2"></path></svg>',
+            edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"></path><path d="m13 7 4 4"></path></svg>',
+            trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4h6v3"></path></svg>'
+        };
+
+        function getTypeIcon(type) {
+            return type === 'folder' ? ICONS.folder : ICONS.file;
+        }
+
+        function createEmptyState(icon, message) {
+            return `<div class="empty-state"><div class="icon">${icon}</div><p>${message}</p></div>`;
+        }
 
         // 收集所有已存在的标签
         function collectAllTags() {
@@ -1137,7 +2111,7 @@
             function renderSuggestionsList(items, header) {
                 selectedIndex = -1;
                 suggestionsEl.innerHTML = `
-                    <div class="tags-suggestions-header">🏷️ ${header}</div>
+                    <div class="tags-suggestions-header"><span class="inline-icon">${ICONS.tag}</span>${header}</div>
                     ${items.map((t, i) => `
                         <div class="suggestion-item" data-tag="${escapeAttr(t.name)}" data-index="${i}">
                             <span class="tag-name">${escapeHtml(t.name)}</span>
@@ -1252,7 +2226,8 @@
         // 显示提示
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
-            toast.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${message}`;
+            const icon = type === 'success' ? ICONS.success : ICONS.error;
+            toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
             toast.className = `toast ${type} show`;
             
             setTimeout(() => {
@@ -1277,12 +2252,12 @@
                     updateParentSelect(result.data);
                     updateStats();
                 } else {
-                    treeContainer.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无分类，请创建第一个分类</p></div>';
+                    treeContainer.innerHTML = createEmptyState(ICONS.empty, '暂无分类，请创建第一个分类');
                     updateStats();
                 }
             } catch (error) {
                 console.error('加载分类失败:', error);
-                treeContainer.innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>加载失败，请重试</p></div>';
+                treeContainer.innerHTML = createEmptyState(ICONS.alert, '加载失败，请重试');
             }
         }
 
@@ -1319,7 +2294,7 @@
             
             if (filtered.length === 0) {
                 document.getElementById('categoryTree').innerHTML = 
-                    '<div class="empty-state"><div class="icon">🔍</div><p>未找到匹配的分类</p></div>';
+                    createEmptyState(ICONS.search, '未找到匹配的分类');
             } else {
                 renderFlatList(filtered);
             }
@@ -1336,7 +2311,7 @@
             const treeContainer = document.getElementById('categoryTree');
             
             if (!categories || categories.length === 0) {
-                treeContainer.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无分类，请创建第一个分类</p></div>';
+                treeContainer.innerHTML = createEmptyState(ICONS.empty, '暂无分类，请创建第一个分类');
                 return;
             }
             
@@ -1344,7 +2319,7 @@
         }
 
         function renderSingleItem(item) {
-            const icon = item.type === 'folder' ? '📁' : '📄';
+            const icon = getTypeIcon(item.type);
             const typeBadge = item.type === 'folder' ? 
                 '<span class="type-badge folder">文件夹</span>' : 
                 '<span class="type-badge article">文章</span>';
@@ -1354,14 +2329,14 @@
             return `
                 <div class="tree-item" data-id="${item.id}">
                     <div class="tree-item-header">
-                        <span class="icon">${icon}</span>
+                        <span class="tree-node-icon">${icon}</span>
                         <span class="name">${escapeHtml(item.name)}</span>
                         ${urlHint}
                         ${typeBadge}
                         <div class="tree-item-actions">
-                            ${item.type === 'folder' ? `<button class="action-btn select" onclick="selectAsParent(${item.id}, '${escapeAttr(item.name)}')" title="选为父分类">📌</button>` : ''}
-                            <button class="action-btn edit" onclick="openEditModal(${item.id})" title="编辑">✏️</button>
-                            <button class="action-btn delete" onclick="deleteCategory(${item.id})" title="删除">🗑️</button>
+                            ${item.type === 'folder' ? `<button class="action-btn select" onclick="selectAsParent(${item.id}, '${escapeAttr(item.name)}')" title="选为父分类" aria-label="选为父分类">${ICONS.pin}</button>` : ''}
+                            <button class="action-btn edit" onclick="openEditModal(${item.id})" title="编辑" aria-label="编辑分类">${ICONS.edit}</button>
+                            <button class="action-btn delete" onclick="deleteCategory(${item.id})" title="删除" aria-label="删除分类">${ICONS.trash}</button>
                         </div>
                     </div>
                 </div>
@@ -1372,7 +2347,7 @@
             if (!items || items.length === 0) return '';
             
             return items.map(item => {
-                const icon = item.type === 'folder' ? '📁' : '📄';
+                const icon = getTypeIcon(item.type);
                 const typeBadge = item.type === 'folder' ? 
                     '<span class="type-badge folder">文件夹</span>' : 
                     '<span class="type-badge article">文章</span>';
@@ -1385,14 +2360,14 @@
                 return `
                     <div class="tree-item" data-id="${item.id}">
                         <div class="tree-item-header">
-                            <span class="icon">${icon}</span>
+                            <span class="tree-node-icon">${icon}</span>
                             <span class="name">${escapeHtml(item.name)}</span>
                             ${urlHint}
                             ${typeBadge}
                             <div class="tree-item-actions">
-                                ${item.type === 'folder' ? `<button class="action-btn select" onclick="selectAsParent(${item.id}, '${escapeAttr(item.name)}')" title="选为父分类">📌</button>` : ''}
-                                <button class="action-btn edit" onclick="openEditModal(${item.id})" title="编辑">✏️</button>
-                                <button class="action-btn delete" onclick="deleteCategory(${item.id})" title="删除">🗑️</button>
+                                ${item.type === 'folder' ? `<button class="action-btn select" onclick="selectAsParent(${item.id}, '${escapeAttr(item.name)}')" title="选为父分类" aria-label="选为父分类">${ICONS.pin}</button>` : ''}
+                                <button class="action-btn edit" onclick="openEditModal(${item.id})" title="编辑" aria-label="编辑分类">${ICONS.edit}</button>
+                                <button class="action-btn delete" onclick="deleteCategory(${item.id})" title="删除" aria-label="删除分类">${ICONS.trash}</button>
                             </div>
                         </div>
                         ${children}
@@ -1667,8 +2642,9 @@
             if (!file) return;
             
             const uploadBtn = document.getElementById('imgUploadBtn');
-            const originalText = uploadBtn.innerHTML;
-            uploadBtn.innerHTML = '⏳ 上传中...';
+            const uploadBtnText = uploadBtn.querySelector('span');
+            const originalText = uploadBtnText ? uploadBtnText.textContent : '上传图片';
+            if (uploadBtnText) uploadBtnText.textContent = '上传中...';
             uploadBtn.classList.add('uploading');
             
             await uploadFile(file, 
@@ -1688,7 +2664,7 @@
                 }
             );
             
-            uploadBtn.innerHTML = originalText;
+            if (uploadBtnText) uploadBtnText.textContent = originalText;
             uploadBtn.classList.remove('uploading');
             e.target.value = '';
         });
@@ -1699,8 +2675,9 @@
             if (!file) return;
             
             const uploadBtn = document.getElementById('mdUploadBtn');
-            const originalText = uploadBtn.innerHTML;
-            uploadBtn.innerHTML = '⏳ 上传中...';
+            const uploadBtnText = uploadBtn.querySelector('span');
+            const originalText = uploadBtnText ? uploadBtnText.textContent : '上传MD';
+            if (uploadBtnText) uploadBtnText.textContent = '上传中...';
             uploadBtn.classList.add('uploading');
             
             await uploadFile(file, 
@@ -1709,7 +2686,7 @@
                     document.getElementById('mdPreview').innerHTML = `
                         <div class="preview-item">
                             <div class="file-info">
-                                <span>📄</span>
+                                <span class="preview-icon">${ICONS.file}</span>
                                 <span>${escapeHtml(file.name)}</span>
                             </div>
                             <button class="remove-btn" onclick="clearMdPreview()">×</button>
@@ -1723,7 +2700,7 @@
                 }
             );
             
-            uploadBtn.innerHTML = originalText;
+            if (uploadBtnText) uploadBtnText.textContent = originalText;
             uploadBtn.classList.remove('uploading');
             e.target.value = '';
         });
