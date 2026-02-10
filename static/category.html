@@ -1278,6 +1278,24 @@
             color: #155e75;
         }
 
+        .upload-btn.upload-alt {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        .upload-btn.upload-alt:hover {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1e40af;
+        }
+
+        .upload-hint {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: #64748b;
+        }
+
         .search-wrapper {
             margin-bottom: 16px;
         }
@@ -1842,7 +1860,7 @@
                     <div class="form-group">
                         <label for="categoryImgUrl">封面图片</label>
                         <div class="upload-wrapper">
-                            <input type="text" id="categoryImgUrl" placeholder="图片URL（可直接输入或上传图片）">
+                            <input type="text" id="categoryImgUrl" placeholder="图片URL（可直接输入、上传图片或粘贴截图）">
                             <label class="upload-btn" for="imgFileInput" id="imgUploadBtn">
                                 <svg viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path>
@@ -1852,7 +1870,16 @@
                                 <span>上传图片</span>
                                 <input type="file" id="imgFileInput" accept="image/*" style="display: none;">
                             </label>
+                            <button type="button" class="upload-btn upload-alt" id="imgPasteBtn">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <rect x="8" y="3" width="8" height="4" rx="1"></rect>
+                                    <path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+                                    <path d="M8 12h8"></path>
+                                </svg>
+                                <span>粘贴截图</span>
+                            </button>
                         </div>
+                        <div class="upload-hint">支持截图粘贴上传：在图片输入框按 Ctrl + V，或点击“粘贴截图”按钮</div>
                         <div id="imgPreview" class="preview-area"></div>
                     </div>
 
@@ -2636,37 +2663,120 @@
             }
         }
 
-        // 图片上传
-        document.getElementById('imgFileInput').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
+        function updateImgPreview(url) {
+            document.getElementById('categoryImgUrl').value = url;
+            document.getElementById('imgPreview').innerHTML = `
+                <div class="preview-item">
+                    <img src="${url}" alt="预览">
+                    <button class="remove-btn" onclick="clearImgPreview()">×</button>
+                </div>
+            `;
+        }
+
+        function getClipboardImageFile(event) {
+            const clipboardData = event.clipboardData;
+            if (!clipboardData || !clipboardData.items) {
+                return null;
+            }
+
+            for (const item of clipboardData.items) {
+                if (item.type && item.type.startsWith('image/')) {
+                    return item.getAsFile();
+                }
+            }
+
+            return null;
+        }
+
+        let isImageUploading = false;
+
+        async function handleCategoryImageUpload(file, source = '图片') {
             if (!file) return;
-            
+
+            if (!file.type || !file.type.startsWith('image/')) {
+                showToast('仅支持上传图片文件', 'error');
+                return;
+            }
+
+            if (isImageUploading) {
+                showToast('图片正在上传，请稍候', 'error');
+                return;
+            }
+
             const uploadBtn = document.getElementById('imgUploadBtn');
+            const pasteBtn = document.getElementById('imgPasteBtn');
             const uploadBtnText = uploadBtn.querySelector('span');
-            const originalText = uploadBtnText ? uploadBtnText.textContent : '上传图片';
-            if (uploadBtnText) uploadBtnText.textContent = '上传中...';
+            const pasteBtnText = pasteBtn ? pasteBtn.querySelector('span') : null;
+
+            const originalUploadText = uploadBtnText ? uploadBtnText.textContent : '上传图片';
+            const originalPasteText = pasteBtnText ? pasteBtnText.textContent : '粘贴截图';
+
+            isImageUploading = true;
             uploadBtn.classList.add('uploading');
-            
-            await uploadFile(file, 
+            if (pasteBtn) pasteBtn.classList.add('uploading');
+            if (uploadBtnText) uploadBtnText.textContent = '上传中...';
+            if (pasteBtnText) pasteBtnText.textContent = '上传中...';
+
+            await uploadFile(file,
                 (url) => {
-                    document.getElementById('categoryImgUrl').value = url;
-                    document.getElementById('imgPreview').innerHTML = `
-                        <div class="preview-item">
-                            <img src="${url}" alt="预览">
-                            <button class="remove-btn" onclick="clearImgPreview()">×</button>
-                        </div>
-                    `;
-                    showToast('图片上传成功', 'success');
+                    updateImgPreview(url);
+                    showToast(`${source}上传成功`, 'success');
                 },
                 (error) => {
                     console.error('上传失败:', error);
-                    showToast('图片上传失败，请重试', 'error');
+                    showToast(`${source}上传失败，请重试`, 'error');
                 }
             );
-            
-            if (uploadBtnText) uploadBtnText.textContent = originalText;
+
+            if (uploadBtnText) uploadBtnText.textContent = originalUploadText;
+            if (pasteBtnText) pasteBtnText.textContent = originalPasteText;
             uploadBtn.classList.remove('uploading');
+            if (pasteBtn) pasteBtn.classList.remove('uploading');
+            isImageUploading = false;
+        }
+
+        // 图片上传
+        document.getElementById('imgFileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+
+            await handleCategoryImageUpload(file, '图片');
             e.target.value = '';
+        });
+
+        document.getElementById('categoryImgUrl').addEventListener('paste', async (e) => {
+            const clipboardImage = getClipboardImageFile(e);
+            if (!clipboardImage) return;
+
+            e.preventDefault();
+            await handleCategoryImageUpload(clipboardImage, '截图');
+        });
+
+        document.getElementById('imgPasteBtn').addEventListener('click', async () => {
+            if (!navigator.clipboard || !navigator.clipboard.read) {
+                showToast('当前浏览器不支持读取剪贴板，请在输入框按 Ctrl + V 粘贴截图', 'error');
+                return;
+            }
+
+            try {
+                const clipboardItems = await navigator.clipboard.read();
+
+                for (const item of clipboardItems) {
+                    const imageType = item.types.find((type) => type.startsWith('image/'));
+                    if (!imageType) continue;
+
+                    const blob = await item.getType(imageType);
+                    const extension = imageType.split('/')[1] || 'png';
+                    const file = new File([blob], `screenshot-${Date.now()}.${extension}`, { type: imageType });
+
+                    await handleCategoryImageUpload(file, '截图');
+                    return;
+                }
+
+                showToast('剪贴板中没有图片，请先复制截图', 'error');
+            } catch (error) {
+                console.error('读取剪贴板失败:', error);
+                showToast('读取剪贴板失败，请在输入框按 Ctrl + V 粘贴截图', 'error');
+            }
         });
 
         // MD文件上传
