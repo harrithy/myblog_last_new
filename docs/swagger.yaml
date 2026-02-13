@@ -1,5 +1,36 @@
 basePath: /
 definitions:
+  handler.ChatMessage:
+    properties:
+      content:
+        example: 请帮我总结这篇文章
+        type: string
+      role:
+        example: user
+        type: string
+    type: object
+  handler.ChatRequest:
+    properties:
+      max_tokens:
+        example: 512
+        type: integer
+      message:
+        example: 帮我生成一个博客标题
+        type: string
+      messages:
+        items:
+          $ref: '#/definitions/handler.ChatMessage'
+        type: array
+      model:
+        example: deepseek-chat
+        type: string
+      system:
+        example: 你是一个技术博客写作助手
+        type: string
+      temperature:
+        example: 0.7
+        type: number
+    type: object
   handler.GitHubRepo:
     properties:
       created_at:
@@ -208,6 +239,36 @@ info:
   title: My Blog API
   version: "1.0"
 paths:
+  /ai/chat:
+    post:
+      consumes:
+      - application/json
+      description: 服务端代理 DeepSeek Chat Completions，避免前端暴露 API Key
+      parameters:
+      - description: 对话请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.ChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: 服务错误
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: DeepSeek 对话代理
+      tags:
+      - ai
   /auth/github:
     get:
       description: 返回 GitHub OAuth 授权页面的 URL

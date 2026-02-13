@@ -55,9 +55,10 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	commentHandler := handler.NewCommentHandler(commentRepo)
 	githubAuthHandler := handler.NewGitHubAuthHandler(userRepo, ownerRepo)
 	uploadHandler := handler.NewUploadHandler()
+	aiHandler := handler.NewAIHandler()
 
 	// 注册 /path 和 /api/path 两种路径模式的路由
-	registerDualRoutes(router, authHandler, userHandler, blogHandler, categoryHandler, visitHandler, commentHandler, githubAuthHandler, uploadHandler)
+	registerDualRoutes(router, authHandler, userHandler, blogHandler, categoryHandler, visitHandler, commentHandler, githubAuthHandler, uploadHandler, aiHandler)
 }
 
 // registerDualRoutes 注册 /path 和 /api/path 两种路径模式的路由
@@ -71,6 +72,7 @@ func registerDualRoutes(
 	commentHandler *handler.CommentHandler,
 	githubAuthHandler *handler.GitHubAuthHandler,
 	uploadHandler *handler.UploadHandler,
+	aiHandler *handler.AIHandler,
 ) {
 	paths := []string{"", "/api"}
 
@@ -252,6 +254,14 @@ func registerDualRoutes(
 		router.Handle(prefix+"/upload", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodPost {
 				uploadHandler.ProxyUpload(w, r)
+				return
+			}
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		})
+
+		router.Handle(prefix+"/ai/chat", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost {
+				aiHandler.Chat(w, r)
 				return
 			}
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

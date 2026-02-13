@@ -9,6 +9,52 @@
     "host": "localhost:8080",
     "basePath": "/",
     "paths": {
+        "/ai/chat": {
+            "post": {
+                "description": "服务端代理 DeepSeek Chat Completions，避免前端暴露 API Key",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "DeepSeek 对话代理",
+                "parameters": [
+                    {
+                        "description": "对话请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.ChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/github": {
             "get": {
                 "description": "返回 GitHub OAuth 授权页面的 URL",
@@ -1172,6 +1218,50 @@
         }
     },
     "definitions": {
+        "handler.ChatMessage": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "example": "请帮我总结这篇文章"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "user"
+                }
+            }
+        },
+        "handler.ChatRequest": {
+            "type": "object",
+            "properties": {
+                "max_tokens": {
+                    "type": "integer",
+                    "example": 512
+                },
+                "message": {
+                    "type": "string",
+                    "example": "帮我生成一个博客标题"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.ChatMessage"
+                    }
+                },
+                "model": {
+                    "type": "string",
+                    "example": "deepseek-chat"
+                },
+                "system": {
+                    "type": "string",
+                    "example": "你是一个技术博客写作助手"
+                },
+                "temperature": {
+                    "type": "number",
+                    "example": 0.7
+                }
+            }
+        },
         "handler.GitHubRepo": {
             "type": "object",
             "properties": {

@@ -734,6 +734,68 @@
             }
         }
 
+        function resolveSchemaRef(schema, visited = new Set()) {
+            if (!schema || typeof schema !== 'object') return schema;
+            if (!schema.$ref || typeof schema.$ref !== 'string') return schema;
+            const refPrefix = '#/definitions/';
+            if (!schema.$ref.startsWith(refPrefix)) return schema;
+
+            const defName = schema.$ref.slice(refPrefix.length);
+            if (!defName || visited.has(defName)) return schema;
+
+            const defSchema = swaggerData?.definitions?.[defName];
+            if (!defSchema) return schema;
+
+            visited.add(defName);
+            const resolved = resolveSchemaRef(defSchema, visited);
+            visited.delete(defName);
+            return resolved || schema;
+        }
+
+        function buildExampleFromSchema(schema, depth = 0) {
+            if (!schema || depth > 6) return {};
+            const resolved = resolveSchemaRef(schema);
+            if (!resolved || typeof resolved !== 'object') return {};
+
+            if (Object.prototype.hasOwnProperty.call(resolved, 'example')) return resolved.example;
+            if (Object.prototype.hasOwnProperty.call(resolved, 'default')) return resolved.default;
+            if (Array.isArray(resolved.enum) && resolved.enum.length > 0) return resolved.enum[0];
+
+            if (resolved.type === 'array') {
+                if (!resolved.items) return [];
+                return [buildExampleFromSchema(resolved.items, depth + 1)];
+            }
+
+            if (resolved.type === 'object' || resolved.properties) {
+                const obj = {};
+                const props = resolved.properties || {};
+                for (const [key, value] of Object.entries(props)) {
+                    obj[key] = buildExampleFromSchema(value, depth + 1);
+                }
+                return obj;
+            }
+
+            switch (resolved.type) {
+                case 'string': return '';
+                case 'integer':
+                case 'number': return 0;
+                case 'boolean': return false;
+                default: return {};
+            }
+        }
+
+        function getBodyExample(api) {
+            const bodyParam = (api.parameters || []).find(p => p.in === 'body');
+            if (!bodyParam || !bodyParam.schema) return {};
+
+            // DeepSeek chat gives a practical default to avoid empty-body 400.
+            if (api.path === '/ai/chat') {
+                return { message: '帮我生成3个Go博客标题' };
+            }
+
+            return buildExampleFromSchema(bodyParam.schema);
+        }
+
         function renderTagNav() {
             const tags = {};
             allApis.forEach(api => api.tags.forEach(tag => { if (!tags[tag]) tags[tag] = 0; tags[tag]++; }));
@@ -971,8 +1033,7 @@
             const bodySection = document.getElementById('bodySection');
             if (['POST', 'PUT', 'PATCH'].includes(currentApi.method)) {
                 bodySection.classList.remove('hidden');
-                const bodyParam = currentApi.parameters.find(p => p.in === 'body');
-                document.getElementById('requestBody').value = bodyParam ? JSON.stringify(bodyParam.schema || {}, null, 2) : '{}';
+                document.getElementById('requestBody').value = JSON.stringify(getBodyExample(currentApi), null, 2);
             } else { bodySection.classList.add('hidden'); }
             
             document.getElementById('responseStatus').textContent = '--';
