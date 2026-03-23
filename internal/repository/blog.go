@@ -6,17 +6,18 @@ import (
 	"strings"
 )
 
-// BlogRepository 处理博客数据访问
+// BlogRepository handles read access for article-like blog data.
+// The current source of truth is categories(type='article').
 type BlogRepository struct {
 	db *sql.DB
 }
 
-// NewBlogRepository 创建新的 BlogRepository
+// NewBlogRepository creates a new BlogRepository.
 func NewBlogRepository(db *sql.DB) *BlogRepository {
 	return &BlogRepository{db: db}
 }
 
-// BlogFilter 表示博客查询的过滤选项
+// BlogFilter represents blog query filters.
 type BlogFilter struct {
 	CategoryID *int
 	Keyword    string
@@ -24,40 +25,45 @@ type BlogFilter struct {
 	PageSize   int
 }
 
-// GetAll 返回带过滤和分页的博客列表
+// GetAll returns paginated article nodes from categories while preserving the blog response shape.
 func (r *BlogRepository) GetAll(filter BlogFilter) ([]models.Blog, int64, error) {
 	queryArgs := make([]interface{}, 0)
-	var whereClauses []string
+	whereClauses := []string{"c.type = 'article'"}
 
 	if filter.CategoryID != nil {
-		whereClauses = append(whereClauses, "b.category_id = ?")
+		whereClauses = append(whereClauses, "c.parent_id = ?")
 		queryArgs = append(queryArgs, *filter.CategoryID)
 	}
 
 	if filter.Keyword != "" {
-		whereClauses = append(whereClauses, "b.title LIKE ?")
+		whereClauses = append(whereClauses, "c.name LIKE ?")
 		queryArgs = append(queryArgs, "%"+filter.Keyword+"%")
 	}
 
-	whereStr := ""
-	if len(whereClauses) > 0 {
-		whereStr = "WHERE " + strings.Join(whereClauses, " AND ")
-	}
+	whereStr := "WHERE " + strings.Join(whereClauses, " AND ")
 
-	// Get total count
 	var total int64
-	countQuery := "SELECT COUNT(*) FROM blogs b " + whereStr
+	countQuery := "SELECT COUNT(*) FROM categories c " + whereStr
 	if err := r.db.QueryRow(countQuery, queryArgs...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
-	// Get data
 	offset := (filter.Page - 1) * filter.PageSize
 	dataQuery := `
-		SELECT b.id, b.title, b.url, b.category_id, IFNULL(c.name, ''), IFNULL(b.description, ''), b.created_at, b.updated_at 
-		FROM blogs b 
-		LEFT JOIN categories c ON b.category_id = c.id 
-		` + whereStr + ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?`
+		SELECT
+			c.id,
+			c.name,
+			IFNULL(c.url, ''),
+			COALESCE(c.parent_id, 0),
+			IFNULL(parent.name, ''),
+			IFNULL(c.description, ''),
+			c.created_at,
+			c.updated_at
+		FROM categories c
+		LEFT JOIN categories parent ON c.parent_id = parent.id
+		` + whereStr + `
+		ORDER BY c.created_at DESC
+		LIMIT ? OFFSET ?`
 
 	dataArgs := append(queryArgs, filter.PageSize, offset)
 	rows, err := r.db.Query(dataQuery, dataArgs...)
@@ -69,30 +75,59 @@ func (r *BlogRepository) GetAll(filter BlogFilter) ([]models.Blog, int64, error)
 	var blogs []models.Blog
 	for rows.Next() {
 		var blog models.Blog
-		if err := rows.Scan(&blog.ID, &blog.Title, &blog.URL, &blog.CategoryID, &blog.CategoryName, &blog.Description, &blog.CreatedAt, &blog.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&blog.ID,
+			&blog.Title,
+			&blog.URL,
+			&blog.CategoryID,
+			&blog.CategoryName,
+			&blog.Description,
+			&blog.CreatedAt,
+			&blog.UpdatedAt,
+		); err != nil {
 			return nil, 0, err
 		}
 		blogs = append(blogs, blog)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
 	return blogs, total, nil
 }
 
-// GetByID 根据 ID 返回博客
+// GetByID returns an article node by category ID while preserving the blog response shape.
 func (r *BlogRepository) GetByID(id int) (*models.Blog, error) {
 	var blog models.Blog
+
 	query := `
-		SELECT b.id, b.title, b.url, b.category_id, IFNULL(c.name, ''), IFNULL(b.description, ''), b.created_at, b.updated_at 
-		FROM blogs b 
-		LEFT JOIN categories c ON b.category_id = c.id 
-		WHERE b.id = ?`
+		SELECT
+			c.id,
+			c.name,
+			IFNULL(c.url, ''),
+			COALESCE(c.parent_id, 0),
+			IFNULL(parent.name, ''),
+			IFNULL(c.description, ''),
+			c.created_at,
+			c.updated_at
+		FROM categories c
+		LEFT JOIN categories parent ON c.parent_id = parent.id
+		WHERE c.id = ? AND c.type = 'article'`
 
 	err := r.db.QueryRow(query, id).Scan(
-		&blog.ID, &blog.Title, &blog.URL, &blog.CategoryID,
-		&blog.CategoryName, &blog.Description, &blog.CreatedAt, &blog.UpdatedAt,
+		&blog.ID,
+		&blog.Title,
+		&blog.URL,
+		&blog.CategoryID,
+		&blog.CategoryName,
+		&blog.Description,
+		&blog.CreatedAt,
+		&blog.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
+
 	return &blog, nil
 }

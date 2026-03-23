@@ -5,39 +5,72 @@ import (
 	"myblog_last_new/internal/handler"
 	"myblog_last_new/internal/middleware"
 	"myblog_last_new/internal/repository"
+	"myblog_last_new/internal/response"
 	"net/http"
 )
 
-// Router 封装 http.ServeMux 并提供额外功能
+type routeHandlers map[string]http.HandlerFunc
+
+// Router wraps http.ServeMux and applies common middleware.
 type Router struct {
 	mux *http.ServeMux
 }
 
-// New 创建新的 Router
+// New creates a new Router.
 func New() *Router {
 	return &Router{mux: http.NewServeMux()}
 }
 
-// ServeHTTP 实现 http.Handler 接口
+// ServeHTTP implements http.Handler.
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.mux.ServeHTTP(w, req)
 }
 
-// Handle 注册带 CORS 中间件的处理器
+// Handle registers a plain handler with CORS.
 func (r *Router) Handle(pattern string, handler http.HandlerFunc) {
 	r.mux.HandleFunc(pattern, middleware.CORS(handler))
 }
 
-// HandleWithAuth 注册需要认证的处理器
+// HandleWithAuth registers a handler protected by JWT auth.
 func (r *Router) HandleWithAuth(pattern string, handler http.HandlerFunc) {
 	r.mux.HandleFunc(pattern, middleware.CORS(middleware.Auth(handler)))
 }
 
-// RegisterRoutes 注册所有应用路由
+// HandleWithOwnerAuth registers a handler protected by owner-only auth.
+func (r *Router) HandleWithOwnerAuth(pattern string, handler http.HandlerFunc) {
+	r.mux.HandleFunc(pattern, middleware.CORS(middleware.OwnerOnly(handler)))
+}
+
+// HandleMethods registers method-specific handlers with CORS.
+func (r *Router) HandleMethods(pattern string, handlers routeHandlers) {
+	r.Handle(pattern, methodHandler(handlers))
+}
+
+// HandleMethodsWithAuth registers method-specific handlers with JWT auth.
+func (r *Router) HandleMethodsWithAuth(pattern string, handlers routeHandlers) {
+	r.HandleWithAuth(pattern, methodHandler(handlers))
+}
+
+// HandleMethodsWithOwnerAuth registers method-specific handlers with owner auth.
+func (r *Router) HandleMethodsWithOwnerAuth(pattern string, handlers routeHandlers) {
+	r.HandleWithOwnerAuth(pattern, methodHandler(handlers))
+}
+
+func methodHandler(handlers routeHandlers) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if handler, ok := handlers[r.Method]; ok {
+			handler(w, r)
+			return
+		}
+
+		response.MethodNotAllowed(w, "Method not allowed")
+	}
+}
+
+// RegisterRoutes registers all application routes.
 func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	router := &Router{mux: mux}
 
-	// 初始化数据仓库
 	userRepo := repository.NewUserRepository(db)
 	blogRepo := repository.NewBlogRepository(db)
 	categoryRepo := repository.NewCategoryRepository(db)
@@ -46,7 +79,6 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	ownerRepo := repository.NewOwnerVisitRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
 
-	// 初始化处理器
 	authHandler := handler.NewAuthHandler(userRepo, ownerRepo)
 	userHandler := handler.NewUserHandler(userRepo)
 	blogHandler := handler.NewBlogHandler(blogRepo)
@@ -57,11 +89,9 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	uploadHandler := handler.NewUploadHandler()
 	aiHandler := handler.NewAIHandler()
 
-	// 注册 /path 和 /api/path 两种路径模式的路由
 	registerDualRoutes(router, authHandler, userHandler, blogHandler, categoryHandler, visitHandler, commentHandler, githubAuthHandler, uploadHandler, aiHandler)
 }
 
-// registerDualRoutes 注册 /path 和 /api/path 两种路径模式的路由
 func registerDualRoutes(
 	router *Router,
 	authHandler *handler.AuthHandler,
@@ -74,197 +104,91 @@ func registerDualRoutes(
 	uploadHandler *handler.UploadHandler,
 	aiHandler *handler.AIHandler,
 ) {
-	paths := []string{"", "/api"}
-
-	for _, prefix := range paths {
-		// 认证路由
-		router.Handle(prefix+"/login", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost {
-				authHandler.Login(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	for _, prefix := range []string{"", "/api"} {
+		router.HandleMethods(prefix+"/login", routeHandlers{
+			http.MethodPost: authHandler.Login,
 		})
 
-		// Token 验证路由
-		router.Handle(prefix+"/auth/verify", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				authHandler.VerifyToken(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/auth/verify", routeHandlers{
+			http.MethodGet: authHandler.VerifyToken,
 		})
 
-		// 用户路由
-		router.Handle(prefix+"/users", func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				userHandler.GetUsers(w, r)
-			case http.MethodPost:
-				middleware.Auth(userHandler.AddUser)(w, r)
-			default:
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
+		router.HandleMethods(prefix+"/users", routeHandlers{
+			http.MethodGet:  userHandler.GetUsers,
+			http.MethodPost: middleware.OwnerOnly(userHandler.AddUser),
 		})
 
-		// 博客路由
-		router.Handle(prefix+"/blogs", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				blogHandler.GetBlogs(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/blogs", routeHandlers{
+			http.MethodGet: blogHandler.GetBlogs,
 		})
 
-		router.Handle(prefix+"/blogs/", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				blogHandler.GetBlogDetail(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/blogs/", routeHandlers{
+			http.MethodGet: blogHandler.GetBlogDetail,
 		})
 
-		// 访问记录路由
-		router.Handle(prefix+"/visits", func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				visitHandler.GetVisitLogs(w, r)
-			case http.MethodPost:
-				visitHandler.LogVisit(w, r)
-			default:
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
+		router.HandleMethods(prefix+"/visits", routeHandlers{
+			http.MethodGet:  visitHandler.GetVisitLogs,
+			http.MethodPost: visitHandler.LogVisit,
 		})
 
-		// 访客路由
-		router.Handle(prefix+"/guest", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost {
-				visitHandler.LogGuestRecord(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/guest", routeHandlers{
+			http.MethodPost: visitHandler.LogGuestRecord,
 		})
 
-		// 博主路由
-		router.Handle(prefix+"/owner/visits", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				visitHandler.GetOwnerVisitStats(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethodsWithOwnerAuth(prefix+"/owner/visits", routeHandlers{
+			http.MethodGet: visitHandler.GetOwnerVisitStats,
 		})
 
-		router.Handle(prefix+"/owner/today-visits", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				visitHandler.GetOwnerTodayVisits(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethodsWithOwnerAuth(prefix+"/owner/today-visits", routeHandlers{
+			http.MethodGet: visitHandler.GetOwnerTodayVisits,
 		})
 
-		// 分类路由
-		router.Handle(prefix+"/categories", func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				categoryHandler.GetCategories(w, r)
-			case http.MethodPost:
-				categoryHandler.CreateCategory(w, r)
-			default:
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
+		router.HandleMethods(prefix+"/categories", routeHandlers{
+			http.MethodGet:  categoryHandler.GetCategories,
+			http.MethodPost: middleware.OwnerOnly(categoryHandler.CreateCategory),
 		})
 
-		// 热门标签路由（不需要token）
-		router.Handle(prefix+"/categories/hot-tags", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				categoryHandler.GetHotTags(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/categories/hot-tags", routeHandlers{
+			http.MethodGet: categoryHandler.GetHotTags,
 		})
 
-		router.Handle(prefix+"/categories/", func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				categoryHandler.GetCategoryByID(w, r)
-			case http.MethodPut:
-				categoryHandler.UpdateCategory(w, r)
-			case http.MethodDelete:
-				categoryHandler.DeleteCategory(w, r)
-			default:
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
+		router.HandleMethods(prefix+"/categories/", routeHandlers{
+			http.MethodGet:    categoryHandler.GetCategoryByID,
+			http.MethodPut:    middleware.OwnerOnly(categoryHandler.UpdateCategory),
+			http.MethodDelete: middleware.OwnerOnly(categoryHandler.DeleteCategory),
 		})
 
-		// 评论路由
-		router.HandleWithAuth(prefix+"/comments", func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				commentHandler.GetComments(w, r)
-			case http.MethodPost:
-				commentHandler.CreateComment(w, r)
-			default:
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			}
+		router.HandleMethods(prefix+"/comments", routeHandlers{
+			http.MethodGet:  commentHandler.GetComments,
+			http.MethodPost: middleware.Auth(commentHandler.CreateComment),
 		})
 
-		router.HandleWithAuth(prefix+"/comments/", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodDelete {
-				commentHandler.DeleteComment(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/comments/", routeHandlers{
+			http.MethodDelete: middleware.Auth(commentHandler.DeleteComment),
 		})
 
-		// GitHub OAuth 路由
-		router.Handle(prefix+"/auth/github", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				githubAuthHandler.GetGitHubLoginURL(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/auth/github", routeHandlers{
+			http.MethodGet: githubAuthHandler.GetGitHubLoginURL,
 		})
 
-		router.Handle(prefix+"/auth/github/callback", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				githubAuthHandler.GitHubCallback(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/auth/github/callback", routeHandlers{
+			http.MethodGet: githubAuthHandler.GitHubCallback,
 		})
 
-		router.Handle(prefix+"/auth/github/login", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost {
-				githubAuthHandler.GitHubCallbackWithCode(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/auth/github/login", routeHandlers{
+			http.MethodPost: githubAuthHandler.GitHubCallbackWithCode,
 		})
 
-		// GitHub 仓库路由
-		router.Handle(prefix+"/github/repos", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodGet {
-				githubAuthHandler.GetOwnerRepos(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethods(prefix+"/github/repos", routeHandlers{
+			http.MethodGet: githubAuthHandler.GetOwnerRepos,
 		})
 
-		// 图片上传代理路由
-		router.Handle(prefix+"/upload", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost {
-				uploadHandler.ProxyUpload(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethodsWithOwnerAuth(prefix+"/upload", routeHandlers{
+			http.MethodPost: uploadHandler.ProxyUpload,
 		})
 
-		router.Handle(prefix+"/ai/chat", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost {
-				aiHandler.Chat(w, r)
-				return
-			}
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		router.HandleMethodsWithOwnerAuth(prefix+"/ai/chat", routeHandlers{
+			http.MethodPost: aiHandler.Chat,
 		})
 	}
 }

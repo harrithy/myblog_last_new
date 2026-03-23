@@ -10,25 +10,24 @@ import (
 	"strings"
 )
 
-// CommentHandler 处理评论相关请求
+// CommentHandler handles comment-related requests.
 type CommentHandler struct {
 	repo *repository.CommentRepository
 }
 
-// NewCommentHandler 创建新的 CommentHandler
+// NewCommentHandler creates a new CommentHandler.
 func NewCommentHandler(repo *repository.CommentRepository) *CommentHandler {
 	return &CommentHandler{repo: repo}
 }
 
 // GetComments godoc
-// @Summary 获取文章评论列表
-// @Description 根据文章ID获取评论列表，支持分页（针对根评论）
+// @Summary List article comments
+// @Description Get paginated root comments and nested replies for an article.
 // @Tags comments
 // @Produce json
-// @Security Bearer
-// @Param article_id query int true "文章ID"
-// @Param page query int false "页码，默认1"
-// @Param page_size query int false "每页数量，默认10"
+// @Param article_id query int true "Article ID"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
 // @Success 200 {object} response.APIResponse
 // @Router /comments [get]
 func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
@@ -64,18 +63,17 @@ func (h *CommentHandler) GetComments(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateComment godoc
-// @Summary 创建评论
-// @Description 为文章创建评论，支持回复其他评论
+// @Summary Create comment
+// @Description Create a comment or reply for an article.
 // @Tags comments
 // @Accept json
 // @Produce json
-// @Security Bearer
-// @Param comment body models.CreateCommentRequest true "评论信息"
+// @Security ApiKeyAuth
+// @Param comment body models.CreateCommentRequest true "Comment payload"
 // @Success 200 {object} response.APIResponse
 // @Router /comments [post]
 func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	var input models.CreateCommentRequest
-
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		response.BadRequest(w, "Invalid request body")
 		return
@@ -94,14 +92,12 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 验证文章是否存在
 	exists, err := h.repo.ArticleExists(input.ArticleID)
 	if err != nil || !exists {
 		response.BadRequest(w, "article not found")
 		return
 	}
 
-	// 如果提供了父评论则验证
 	if input.ParentID != nil {
 		exists, err := h.repo.ParentCommentExists(*input.ParentID, input.ArticleID)
 		if err != nil || !exists {
@@ -120,12 +116,12 @@ func (h *CommentHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteComment godoc
-// @Summary 删除评论
-// @Description 根据ID删除评论
+// @Summary Delete comment
+// @Description Delete a comment by ID.
 // @Tags comments
 // @Produce json
-// @Security Bearer
-// @Param id path int true "评论ID"
+// @Security ApiKeyAuth
+// @Param id path int true "Comment ID"
 // @Success 200 {object} response.APIResponse
 // @Router /comments/{id} [delete]
 func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {

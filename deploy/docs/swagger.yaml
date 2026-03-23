@@ -1,15 +1,72 @@
-basePath: /
 definitions:
-  models.APIResponse:
+  handler.ChatMessage:
     properties:
-      code:
-        type: integer
-      data: {}
-      msg:
+      content:
+        example: Please summarize this article
         type: string
-      page:
+      role:
+        example: user
+        type: string
+    type: object
+  handler.ChatRequest:
+    properties:
+      max_tokens:
+        example: 512
         type: integer
-      total:
+      message:
+        example: Generate three blog titles
+        type: string
+      messages:
+        items:
+          $ref: '#/definitions/handler.ChatMessage'
+        type: array
+      model:
+        example: deepseek-chat
+        type: string
+      system:
+        example: You are a helpful writing assistant
+        type: string
+      temperature:
+        example: 0.7
+        type: number
+    type: object
+  handler.GitHubRepo:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      fork:
+        type: boolean
+      forks_count:
+        type: integer
+      full_name:
+        type: string
+      homepage:
+        type: string
+      html_url:
+        type: string
+      id:
+        type: integer
+      language:
+        type: string
+      name:
+        type: string
+      open_issues_count:
+        type: integer
+      private:
+        type: boolean
+      pushed_at:
+        type: string
+      stargazers_count:
+        type: integer
+      topics:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+      watchers_count:
         type: integer
     type: object
   models.Blog:
@@ -41,8 +98,14 @@ definitions:
         type: array
       created_at:
         $ref: '#/definitions/models.CustomTime'
+      description:
+        description: 分类描述
+        type: string
       id:
         type: integer
+      img_url:
+        description: 分类封面图片URL
+        type: string
       name:
         type: string
       parent_id:
@@ -50,6 +113,11 @@ definitions:
         type: integer
       sort_order:
         type: integer
+      tags:
+        description: 分类标签
+        items:
+          type: string
+        type: array
       type:
         description: folder=文件夹, article=文章
         type: string
@@ -58,6 +126,33 @@ definitions:
       url:
         description: 文章类型时存储文章地址
         type: string
+    type: object
+  models.CreateCommentRequest:
+    properties:
+      article_id:
+        description: 文章ID
+        example: 11
+        type: integer
+      avatar_url:
+        description: 评论者头像（可选）
+        example: https://example.com/avatar.jpg
+        type: string
+      content:
+        description: 评论内容
+        example: 写得很好！
+        type: string
+      email:
+        description: 评论者邮箱（可选）
+        example: zhangsan@example.com
+        type: string
+      nickname:
+        description: 评论者昵称
+        example: 张三
+        type: string
+      parent_id:
+        description: 父评论ID（可选）
+        example: 101
+        type: integer
     type: object
   models.CustomTime:
     properties:
@@ -82,7 +177,16 @@ definitions:
     properties:
       account:
         type: string
+      avatar_url:
+        description: GitHub 头像 URL
+        type: string
       birthday:
+        type: string
+      github_id:
+        description: GitHub 用户 ID
+        type: integer
+      github_url:
+        description: GitHub 主页 URL
         type: string
       id:
         type: integer
@@ -108,21 +212,175 @@ definitions:
     required:
     - visit_time
     type: object
-host: localhost:8080
+  repository.HotTag:
+    properties:
+      count:
+        type: integer
+      name:
+        type: string
+    type: object
+  response.APIResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
 info:
   contact: {}
-  description: This is a sample server for a blog application.
-  title: My Blog API
-  version: "1.0"
 paths:
+  /ai/chat:
+    post:
+      consumes:
+      - application/json
+      description: Proxy a DeepSeek Chat Completions request without exposing the
+        API key to the frontend.
+      parameters:
+      - description: Chat request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.ChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy DeepSeek chat
+      tags:
+      - ai
+  /auth/github:
+    get:
+      description: 返回 GitHub OAuth 授权页面的 URL
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"url": "..."}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取 GitHub 登录 URL
+      tags:
+      - auth
+  /auth/github/callback:
+    get:
+      description: 处理 GitHub OAuth 回调，获取用户信息并登录/注册
+      parameters:
+      - description: GitHub 授权码
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"token": "...", "user": {...}}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 缺少授权码
+          schema:
+            type: string
+        "500":
+          description: 获取 token 失败
+          schema:
+            type: string
+      summary: GitHub OAuth 回调
+      tags:
+      - auth
+  /auth/github/login:
+    post:
+      consumes:
+      - application/json
+      description: 前端传递 GitHub 授权码，后端处理登录/注册
+      parameters:
+      - description: 包含 code 的请求体
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"token": "...", "user": {...}}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 无效的请求体
+          schema:
+            type: string
+        "500":
+          description: 获取 token 失败
+          schema:
+            type: string
+      summary: 使用授权码进行 GitHub 登录
+      tags:
+      - auth
+  /auth/verify:
+    get:
+      description: 验证 JWT Token 是否有效，返回当前用户信息
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token 有效，返回用户信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "401":
+          description: Token 无效或已过期
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: 验证 Token 有效性
+      tags:
+      - auth
   /blogs:
     get:
-      description: 根据分类ID分页获取博客列表。
+      description: 根据分类ID分页获取博客列表，支持关键词搜索。
       parameters:
       - description: 分类ID
         in: query
         name: category_id
         type: integer
+      - description: 搜索关键词
+        in: query
+        name: keyword
+        type: string
       - description: 页码，默认1
         in: query
         name: page
@@ -138,7 +396,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   items:
@@ -148,7 +406,7 @@ paths:
         "500":
           description: 查询失败
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
       summary: 获取博客列表
       tags:
       - blogs
@@ -168,7 +426,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   $ref: '#/definitions/models.Blog'
@@ -176,34 +434,46 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "404":
           description: 博客不存在
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "500":
           description: 查询失败
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
       summary: 获取博客详情
       tags:
       - blogs
   /categories:
     get:
-      description: 获取所有分类，支持树形结构返回，支持按父分类和类型筛选
+      description: List categories with optional tree mode and pagination.
       parameters:
-      - description: 是否返回树形结构，默认true
+      - description: Return tree structure, default true
         in: query
         name: tree
         type: boolean
-      - description: 父分类ID，查询指定父分类下的子分类
+      - description: Parent category ID
         in: query
         name: parent_id
         type: integer
-      - description: 类型筛选：folder(文件夹)或article(文章)
+      - description: 'Category type filter: folder or article'
         in: query
         name: type
         type: string
+      - description: Category name keyword
+        in: query
+        name: keyword
+        type: string
+      - description: Page number starting from 1
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
@@ -211,7 +481,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   items:
@@ -219,18 +489,18 @@ paths:
                   type: array
               type: object
         "500":
-          description: 查询失败
+          description: Query failed
           schema:
-            $ref: '#/definitions/models.APIResponse'
-      summary: 获取分类列表
+            $ref: '#/definitions/response.APIResponse'
+      summary: List categories
       tags:
       - categories
     post:
       consumes:
       - application/json
-      description: 创建一个新的分类，可以是顶级分类或子分类。parent_id为空表示顶级分类，传入父分类ID则创建子分类。type可选folder(文件夹)或article(文章)，默认folder。
+      description: Create a new category or nested child category.
       parameters:
-      - description: 分类信息
+      - description: Category payload
         in: body
         name: category
         required: true
@@ -243,27 +513,29 @@ paths:
           description: Created
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   $ref: '#/definitions/models.Category'
               type: object
         "400":
-          description: 参数错误
+          description: Invalid request
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "500":
-          description: 创建失败
+          description: Create failed
           schema:
-            $ref: '#/definitions/models.APIResponse'
-      summary: 创建分类
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create category
       tags:
       - categories
   /categories/{id}:
     delete:
-      description: 删除分类，子分类会一并删除
+      description: Delete a category and its descendants.
       parameters:
-      - description: 分类ID
+      - description: Category ID
         in: path
         name: id
         required: true
@@ -272,28 +544,26 @@ paths:
       - application/json
       responses:
         "200":
-          description: 删除成功
+          description: OK
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "400":
-          description: 参数错误
+          description: Invalid request
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "404":
-          description: 分类不存在
+          description: Category not found
           schema:
-            $ref: '#/definitions/models.APIResponse'
-        "500":
-          description: 删除失败
-          schema:
-            $ref: '#/definitions/models.APIResponse'
-      summary: 删除分类
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete category
       tags:
       - categories
     get:
-      description: 根据ID获取分类详情，包含子分类
+      description: Get a category and its nested children by ID.
       parameters:
-      - description: 分类ID
+      - description: Category ID
         in: path
         name: id
         required: true
@@ -305,37 +575,33 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   $ref: '#/definitions/models.Category'
               type: object
         "400":
-          description: 参数错误
+          description: Invalid ID
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "404":
-          description: 分类不存在
+          description: Category not found
           schema:
-            $ref: '#/definitions/models.APIResponse'
-        "500":
-          description: 查询失败
-          schema:
-            $ref: '#/definitions/models.APIResponse'
-      summary: 获取单个分类详情
+            $ref: '#/definitions/response.APIResponse'
+      summary: Get category detail
       tags:
       - categories
     put:
       consumes:
       - application/json
-      description: 更新分类信息，可修改名称、父分类和排序
+      description: Update category fields.
       parameters:
-      - description: 分类ID
+      - description: Category ID
         in: path
         name: id
         required: true
         type: integer
-      - description: 分类信息
+      - description: Category payload
         in: body
         name: category
         required: true
@@ -348,33 +614,157 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   $ref: '#/definitions/models.Category'
               type: object
         "400":
-          description: 参数错误
+          description: Invalid request
           schema:
-            $ref: '#/definitions/models.APIResponse'
+            $ref: '#/definitions/response.APIResponse'
         "404":
-          description: 分类不存在
+          description: Category not found
           schema:
-            $ref: '#/definitions/models.APIResponse'
-        "500":
-          description: 更新失败
-          schema:
-            $ref: '#/definitions/models.APIResponse'
-      summary: 更新分类
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update category
       tags:
       - categories
+  /categories/hot-tags:
+    get:
+      description: Get the most frequently used tags.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/repository.HotTag'
+                  type: array
+              type: object
+        "500":
+          description: Query failed
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: Get hot tags
+      tags:
+      - categories
+  /comments:
+    get:
+      description: Get paginated root comments and nested replies for an article.
+      parameters:
+      - description: Article ID
+        in: query
+        name: article_id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: List article comments
+      tags:
+      - comments
+    post:
+      consumes:
+      - application/json
+      description: Create a comment or reply for an article.
+      parameters:
+      - description: Comment payload
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create comment
+      tags:
+      - comments
+  /comments/{id}:
+    delete:
+      description: Delete a comment by ID.
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete comment
+      tags:
+      - comments
+  /github/repos:
+    get:
+      description: 获取博主 GitHub 账号下的所有公开仓库
+      parameters:
+      - default: updated
+        description: '排序方式: created, updated, pushed, full_name'
+        in: query
+        name: sort
+        type: string
+      - default: 30
+        description: 每页数量
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/handler.GitHubRepo'
+                  type: array
+              type: object
+      summary: 获取博主的 GitHub 开源项目
+      tags:
+      - github
   /guest:
     post:
       consumes:
       - application/json
-      description: 记录访客进入网站的时间和内容信息
+      description: Record a guest entry event.
       parameters:
-      - description: 访客记录信息
+      - description: Guest record payload
         in: body
         name: record
         required: true
@@ -387,19 +777,19 @@ paths:
           description: Created
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   $ref: '#/definitions/models.GuestRecord'
               type: object
-      summary: 记录访客进入信息
+      summary: Create guest record
       tags:
       - guest
   /login:
     post:
       consumes:
       - application/json
-      description: 验证用户身份并返回一个 JWT 令牌。
+      description: 验证用户身份并返回一个 JWT 令牌
       parameters:
       - description: 用户凭证
         in: body
@@ -424,70 +814,98 @@ paths:
           description: 未找到用户
           schema:
             type: string
-        "500":
-          description: 查询失败或生成令牌失败
-          schema:
-            type: string
       summary: 用户登录
       tags:
       - auth
   /owner/today-visits:
     get:
-      consumes:
-      - application/json
-      description: 获取博客主人今天的访问次数统计
+      description: Get today's visit count for the owner.
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: 获取成功
+          description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   type: object
               type: object
-        "500":
-          description: 查询失败
-          schema:
-            $ref: '#/definitions/models.APIResponse'
-      summary: 获取博客主人今日访问次数
+      security:
+      - ApiKeyAuth: []
+      summary: Get owner today visits
       tags:
       - owner
   /owner/visits:
     get:
-      consumes:
-      - application/json
-      description: 获取博客主人指定天数内每天访问次数的统计信息，包含访问日期、访问次数和最后访问时间
+      description: Get visit stats for the owner over the last N days.
       parameters:
-      - description: 获取最近多少天的数据，默认7天，最大365天
+      - description: Number of days, default 7
         in: query
         name: days
         type: integer
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: 获取成功
+          description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   type: object
               type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/models.APIResponse'
-        "500":
-          description: 查询失败
-          schema:
-            $ref: '#/definitions/models.APIResponse'
-      summary: 获取博客主人访问统计
+      security:
+      - ApiKeyAuth: []
+      summary: Get owner visit stats
       tags:
       - owner
+  /upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an image to the remote image host and forward its response.
+      parameters:
+      - description: Image file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Upload failed
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy image upload
+      tags:
+      - upload
   /users:
     get:
       description: 获取所有已注册用户的列表。
@@ -540,7 +958,7 @@ paths:
       - users
   /visits:
     get:
-      description: 检索所有用户访问日志的列表，按访问时间降序排列。
+      description: Get paginated visit logs.
       produces:
       - application/json
       responses:
@@ -548,26 +966,22 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   items:
                     $ref: '#/definitions/models.VisitLog'
                   type: array
               type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.APIResponse'
-      summary: 获取所有访问日志
+      summary: List visit logs
       tags:
       - visits
     post:
       consumes:
       - application/json
-      description: 记录一次新的用户访问。用户昵称是可选的，访问时间是必传的，内容是可选的。
+      description: Record a user visit.
       parameters:
-      - description: 访问信息
+      - description: Visit payload
         in: body
         name: visit
         required: true
@@ -580,12 +994,12 @@ paths:
           description: Created
           schema:
             allOf:
-            - $ref: '#/definitions/models.APIResponse'
+            - $ref: '#/definitions/response.APIResponse'
             - properties:
                 data:
                   $ref: '#/definitions/models.VisitLog'
               type: object
-      summary: 记录用户访问
+      summary: Create visit log
       tags:
       - visits
 swagger: "2.0"

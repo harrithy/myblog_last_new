@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// APIResponse 定义标准的 API 响应格式
+// APIResponse defines the standard API response format.
 type APIResponse struct {
 	Code  int         `json:"code"`
 	Data  interface{} `json:"data"`
@@ -14,14 +14,14 @@ type APIResponse struct {
 	Page  int         `json:"page,omitempty"`
 }
 
-// JSON 发送指定状态码的 JSON 响应
+// JSON sends a JSON response with the provided HTTP status code.
 func JSON(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data)
 }
 
-// Success 发送成功响应
+// Success sends a 200 response body.
 func Success(w http.ResponseWriter, data interface{}) {
 	JSON(w, http.StatusOK, APIResponse{
 		Code: 200,
@@ -30,7 +30,7 @@ func Success(w http.ResponseWriter, data interface{}) {
 	})
 }
 
-// SuccessWithPage 发送带分页信息的成功响应
+// SuccessWithPage sends a paginated success response.
 func SuccessWithPage(w http.ResponseWriter, data interface{}, total int64, page int) {
 	JSON(w, http.StatusOK, APIResponse{
 		Code:  200,
@@ -41,16 +41,16 @@ func SuccessWithPage(w http.ResponseWriter, data interface{}, total int64, page 
 	})
 }
 
-// Created 发送 201 创建成功响应
+// Created sends a 201 response body.
 func Created(w http.ResponseWriter, data interface{}) {
 	JSON(w, http.StatusCreated, APIResponse{
-		Code: 200,
+		Code: 201,
 		Data: data,
 		Msg:  "success",
 	})
 }
 
-// Error 发送错误响应
+// Error sends a standard error response.
 func Error(w http.ResponseWriter, statusCode int, code int, msg string) {
 	JSON(w, statusCode, APIResponse{
 		Code: code,
@@ -59,22 +59,32 @@ func Error(w http.ResponseWriter, statusCode int, code int, msg string) {
 	})
 }
 
-// BadRequest 发送 400 请求错误响应
+// BadRequest sends a 400 bad request response.
 func BadRequest(w http.ResponseWriter, msg string) {
 	Error(w, http.StatusBadRequest, 400, msg)
 }
 
-// Unauthorized 发送 401 未授权响应
+// Unauthorized sends a 401 unauthorized response.
 func Unauthorized(w http.ResponseWriter, msg string) {
 	Error(w, http.StatusUnauthorized, 401, msg)
 }
 
-// NotFound 发送 404 未找到响应
+// Forbidden sends a 403 forbidden response.
+func Forbidden(w http.ResponseWriter, msg string) {
+	Error(w, http.StatusForbidden, 403, msg)
+}
+
+// NotFound sends a 404 not found response.
 func NotFound(w http.ResponseWriter, msg string) {
 	Error(w, http.StatusNotFound, 404, msg)
 }
 
-// InternalError 发送 500 服务器内部错误响应
+// MethodNotAllowed sends a 405 method not allowed response.
+func MethodNotAllowed(w http.ResponseWriter, msg string) {
+	Error(w, http.StatusMethodNotAllowed, 405, msg)
+}
+
+// InternalError sends a 500 internal server error response.
 func InternalError(w http.ResponseWriter, msg string) {
 	Error(w, http.StatusInternalServerError, 500, msg)
 }

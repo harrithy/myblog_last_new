@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"myblog_last_new/internal/config"
 	"myblog_last_new/internal/middleware"
 	"myblog_last_new/internal/repository"
 	"myblog_last_new/internal/response"
@@ -22,14 +23,12 @@ type GitHubConfig struct {
 	RedirectURI  string
 }
 
-// OwnerGitHubID 博主的 GitHub ID
-const OwnerGitHubID int64 = 156180607
-
 // GitHubAuthHandler 处理 GitHub OAuth 认证
 type GitHubAuthHandler struct {
 	userRepo  *repository.UserRepository
 	ownerRepo *repository.OwnerVisitRepository
 	config    GitHubConfig
+	owner     config.OwnerSettings
 }
 
 // NewGitHubAuthHandler 创建新的 GitHubAuthHandler
@@ -38,6 +37,7 @@ func NewGitHubAuthHandler(userRepo *repository.UserRepository, ownerRepo *reposi
 	return &GitHubAuthHandler{
 		userRepo:  userRepo,
 		ownerRepo: ownerRepo,
+		owner:     config.LoadOwnerSettings(),
 		config: GitHubConfig{
 			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
@@ -114,7 +114,7 @@ func (h *GitHubAuthHandler) GitHubCallback(w http.ResponseWriter, r *http.Reques
 	}
 
 	// 检查是否是博主登录，记录访问统计
-	isOwner := githubUser.ID == OwnerGitHubID
+	isOwner := h.owner.GitHubID > 0 && githubUser.ID == h.owner.GitHubID
 	if isOwner {
 		go func() {
 			if err := h.ownerRepo.RecordVisit(); err != nil {
@@ -124,7 +124,7 @@ func (h *GitHubAuthHandler) GitHubCallback(w http.ResponseWriter, r *http.Reques
 	}
 
 	// 生成 JWT token
-	tokenString, err := middleware.GenerateJWT(user.Account)
+	tokenString, err := middleware.GenerateJWT(user.Account, isOwner)
 	if err != nil {
 		response.InternalError(w, "Failed to generate token")
 		return
@@ -187,7 +187,7 @@ func (h *GitHubAuthHandler) GitHubCallbackWithCode(w http.ResponseWriter, r *htt
 	}
 
 	// 检查是否是博主登录，记录访问统计
-	isOwner := githubUser.ID == OwnerGitHubID
+	isOwner := h.owner.GitHubID > 0 && githubUser.ID == h.owner.GitHubID
 	if isOwner {
 		go func() {
 			if err := h.ownerRepo.RecordVisit(); err != nil {
@@ -197,7 +197,7 @@ func (h *GitHubAuthHandler) GitHubCallbackWithCode(w http.ResponseWriter, r *htt
 	}
 
 	// 生成 JWT token
-	tokenString, err := middleware.GenerateJWT(user.Account)
+	tokenString, err := middleware.GenerateJWT(user.Account, isOwner)
 	if err != nil {
 		response.InternalError(w, "Failed to generate token")
 		return
@@ -235,8 +235,6 @@ func (h *GitHubAuthHandler) exchangeCodeForToken(code string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	fmt.Printf("GitHub OAuth response status: %d\n", resp.StatusCode)
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
@@ -253,8 +251,18 @@ func (h *GitHubAuthHandler) exchangeCodeForToken(code string) (string, error) {
 		return "", err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		if tokenResp.Error != "" {
+			return "", fmt.Errorf("github token exchange failed: %s: %s", tokenResp.Error, tokenResp.ErrorDesc)
+		}
+		return "", fmt.Errorf("github token exchange failed with status %d", resp.StatusCode)
+	}
+
 	if tokenResp.Error != "" {
 		return "", fmt.Errorf("%s: %s", tokenResp.Error, tokenResp.ErrorDesc)
+	}
+	if strings.TrimSpace(tokenResp.AccessToken) == "" {
+		return "", fmt.Errorf("github token exchange returned an empty access token")
 	}
 
 	return tokenResp.AccessToken, nil
@@ -269,7 +277,7 @@ func (h *GitHubAuthHandler) getGitHubUser(accessToken string) (*models.GitHubUse
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -281,16 +289,20 @@ func (h *GitHubAuthHandler) getGitHubUser(accessToken string) (*models.GitHubUse
 		return nil, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("github user request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
 	var user models.GitHubUser
 	if err := json.Unmarshal(body, &user); err != nil {
 		return nil, err
 	}
+	if user.ID == 0 || strings.TrimSpace(user.Login) == "" {
+		return nil, fmt.Errorf("github user response missing required identity fields")
+	}
 
 	return &user, nil
 }
-
-// OwnerGitHubUsername 博主的 GitHub 用户名
-const OwnerGitHubUsername = "harrithy"
 
 // GitHubRepo GitHub 仓库信息
 type GitHubRepo struct {
@@ -323,6 +335,11 @@ type GitHubRepo struct {
 // @Success 200 {object} response.APIResponse{data=[]GitHubRepo}
 // @Router /github/repos [get]
 func (h *GitHubAuthHandler) GetOwnerRepos(w http.ResponseWriter, r *http.Request) {
+	if strings.TrimSpace(h.owner.GitHubUsername) == "" {
+		response.InternalError(w, "Owner GitHub username is not configured")
+		return
+	}
+
 	sort := r.URL.Query().Get("sort")
 	if sort == "" {
 		sort = "updated"
@@ -335,7 +352,7 @@ func (h *GitHubAuthHandler) GetOwnerRepos(w http.ResponseWriter, r *http.Request
 
 	apiURL := fmt.Sprintf(
 		"https://api.github.com/users/%s/repos?sort=%s&per_page=%s&type=owner",
-		OwnerGitHubUsername, sort, perPage,
+		h.owner.GitHubUsername, sort, perPage,
 	)
 
 	req, err := http.NewRequest("GET", apiURL, nil)

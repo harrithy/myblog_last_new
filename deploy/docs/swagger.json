@@ -1,17 +1,222 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a sample server for a blog application.",
-        "title": "My Blog API",
-        "contact": {},
-        "version": "1.0"
+        "contact": {}
     },
-    "host": "localhost:8080",
-    "basePath": "/",
     "paths": {
+        "/ai/chat": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxy a DeepSeek Chat Completions request without exposing the API key to the frontend.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Proxy DeepSeek chat",
+                "parameters": [
+                    {
+                        "description": "Chat request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.ChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/github": {
+            "get": {
+                "description": "返回 GitHub OAuth 授权页面的 URL",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "获取 GitHub 登录 URL",
+                "responses": {
+                    "200": {
+                        "description": "{\"url\": \"...\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/github/callback": {
+            "get": {
+                "description": "处理 GitHub OAuth 回调，获取用户信息并登录/注册",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "GitHub OAuth 回调",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "GitHub 授权码",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\"token\": \"...\", \"user\": {...}}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "缺少授权码",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取 token 失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/github/login": {
+            "post": {
+                "description": "前端传递 GitHub 授权码，后端处理登录/注册",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "使用授权码进行 GitHub 登录",
+                "parameters": [
+                    {
+                        "description": "包含 code 的请求体",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\"token\": \"...\", \"user\": {...}}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "无效的请求体",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取 token 失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify": {
+            "get": {
+                "description": "验证 JWT Token 是否有效，返回当前用户信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "验证 Token 有效性",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token 有效，返回用户信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Token 无效或已过期",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/blogs": {
             "get": {
-                "description": "根据分类ID分页获取博客列表。",
+                "description": "根据分类ID分页获取博客列表，支持关键词搜索。",
                 "produces": [
                     "application/json"
                 ],
@@ -24,6 +229,12 @@
                         "type": "integer",
                         "description": "分类ID",
                         "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词",
+                        "name": "keyword",
                         "in": "query"
                     },
                     {
@@ -45,7 +256,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -64,7 +275,7 @@
                     "500": {
                         "description": "查询失败",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -95,7 +306,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -111,19 +322,19 @@
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
                         "description": "博客不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
                         "description": "查询失败",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -131,31 +342,49 @@
         },
         "/categories": {
             "get": {
-                "description": "获取所有分类，支持树形结构返回，支持按父分类和类型筛选",
+                "description": "List categories with optional tree mode and pagination.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "categories"
                 ],
-                "summary": "获取分类列表",
+                "summary": "List categories",
                 "parameters": [
                     {
                         "type": "boolean",
-                        "description": "是否返回树形结构，默认true",
+                        "description": "Return tree structure, default true",
                         "name": "tree",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "父分类ID，查询指定父分类下的子分类",
+                        "description": "Parent category ID",
                         "name": "parent_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "类型筛选：folder(文件夹)或article(文章)",
+                        "description": "Category type filter: folder or article",
                         "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category name keyword",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number starting from 1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
                         "in": "query"
                     }
                 ],
@@ -165,7 +394,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -182,15 +411,20 @@
                         }
                     },
                     "500": {
-                        "description": "查询失败",
+                        "description": "Query failed",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
             },
             "post": {
-                "description": "创建一个新的分类，可以是顶级分类或子分类。parent_id为空表示顶级分类，传入父分类ID则创建子分类。type可选folder(文件夹)或article(文章)，默认folder。",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new category or nested child category.",
                 "consumes": [
                     "application/json"
                 ],
@@ -200,10 +434,10 @@
                 "tags": [
                     "categories"
                 ],
-                "summary": "创建分类",
+                "summary": "Create category",
                 "parameters": [
                     {
-                        "description": "分类信息",
+                        "description": "Category payload",
                         "name": "category",
                         "in": "body",
                         "required": true,
@@ -218,7 +452,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -232,15 +466,56 @@
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "创建失败",
+                        "description": "Create failed",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/categories/hot-tags": {
+            "get": {
+                "description": "Get the most frequently used tags.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Get hot tags",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/repository.HotTag"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Query failed",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -248,18 +523,18 @@
         },
         "/categories/{id}": {
             "get": {
-                "description": "根据ID获取分类详情，包含子分类",
+                "description": "Get a category and its nested children by ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "categories"
                 ],
-                "summary": "获取单个分类详情",
+                "summary": "Get category detail",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "分类ID",
+                        "description": "Category ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -271,7 +546,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -285,27 +560,26 @@
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid ID",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
-                        "description": "分类不存在",
+                        "description": "Category not found",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "查询失败",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
             },
             "put": {
-                "description": "更新分类信息，可修改名称、父分类和排序",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update category fields.",
                 "consumes": [
                     "application/json"
                 ],
@@ -315,17 +589,17 @@
                 "tags": [
                     "categories"
                 ],
-                "summary": "更新分类",
+                "summary": "Update category",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "分类ID",
+                        "description": "Category ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "分类信息",
+                        "description": "Category payload",
                         "name": "category",
                         "in": "body",
                         "required": true,
@@ -340,7 +614,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -354,38 +628,37 @@
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
-                        "description": "分类不存在",
+                        "description": "Category not found",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "更新失败",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
             },
             "delete": {
-                "description": "删除分类，子分类会一并删除",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete a category and its descendants.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "categories"
                 ],
-                "summary": "删除分类",
+                "summary": "Delete category",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "分类ID",
+                        "description": "Category ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -393,27 +666,184 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "删除成功",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
-                        "description": "分类不存在",
+                        "description": "Category not found",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
+                    }
+                }
+            }
+        },
+        "/comments": {
+            "get": {
+                "description": "Get paginated root comments and nested replies for an article.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "List article comments",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Article ID",
+                        "name": "article_id",
+                        "in": "query",
+                        "required": true
                     },
-                    "500": {
-                        "description": "删除失败",
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a comment or reply for an article.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Create comment",
+                "parameters": [
+                    {
+                        "description": "Comment payload",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateCommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/comments/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete a comment by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Delete comment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/github/repos": {
+            "get": {
+                "description": "获取博主 GitHub 账号下的所有公开仓库",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "github"
+                ],
+                "summary": "获取博主的 GitHub 开源项目",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "updated",
+                        "description": "排序方式: created, updated, pushed, full_name",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "每页数量",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/handler.GitHubRepo"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -421,7 +851,7 @@
         },
         "/guest": {
             "post": {
-                "description": "记录访客进入网站的时间和内容信息",
+                "description": "Record a guest entry event.",
                 "consumes": [
                     "application/json"
                 ],
@@ -431,10 +861,10 @@
                 "tags": [
                     "guest"
                 ],
-                "summary": "记录访客进入信息",
+                "summary": "Create guest record",
                 "parameters": [
                     {
-                        "description": "访客记录信息",
+                        "description": "Guest record payload",
                         "name": "record",
                         "in": "body",
                         "required": true,
@@ -449,7 +879,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -467,7 +897,7 @@
         },
         "/login": {
             "post": {
-                "description": "验证用户身份并返回一个 JWT 令牌。",
+                "description": "验证用户身份并返回一个 JWT 令牌",
                 "consumes": [
                     "application/json"
                 ],
@@ -510,36 +940,41 @@
                         "schema": {
                             "type": "string"
                         }
-                    },
-                    "500": {
-                        "description": "查询失败或生成令牌失败",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 }
             }
         },
         "/owner/today-visits": {
             "get": {
-                "description": "获取博客主人今天的访问次数统计",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Get today's visit count for the owner.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "owner"
                 ],
-                "summary": "获取博客主人今日访问次数",
+                "summary": "Get owner today visits",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "获取成功",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -550,12 +985,6 @@
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "500": {
-                        "description": "查询失败",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
                         }
                     }
                 }
@@ -563,32 +992,41 @@
         },
         "/owner/visits": {
             "get": {
-                "description": "获取博客主人指定天数内每天访问次数的统计信息，包含访问日期、访问次数和最后访问时间",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Get visit stats for the owner over the last N days.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "owner"
                 ],
-                "summary": "获取博客主人访问统计",
+                "summary": "Get owner visit stats",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "获取最近多少天的数据，默认7天，最大365天",
+                        "description": "Number of days, default 7",
                         "name": "days",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "获取成功",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -600,17 +1038,57 @@
                                 }
                             ]
                         }
+                    }
+                }
+            }
+        },
+        "/upload": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Upload an image to the remote image host and forward its response.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "Proxy image upload",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Image file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "查询失败",
+                        "description": "Upload failed",
                         "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
+                            "$ref": "#/definitions/response.APIResponse"
                         }
                     }
                 }
@@ -696,21 +1174,21 @@
         },
         "/visits": {
             "get": {
-                "description": "检索所有用户访问日志的列表，按访问时间降序排列。",
+                "description": "Get paginated visit logs.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "visits"
                 ],
-                "summary": "获取所有访问日志",
+                "summary": "List visit logs",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -725,17 +1203,11 @@
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/models.APIResponse"
-                        }
                     }
                 }
             },
             "post": {
-                "description": "记录一次新的用户访问。用户昵称是可选的，访问时间是必传的，内容是可选的。",
+                "description": "Record a user visit.",
                 "consumes": [
                     "application/json"
                 ],
@@ -745,10 +1217,10 @@
                 "tags": [
                     "visits"
                 ],
-                "summary": "记录用户访问",
+                "summary": "Create visit log",
                 "parameters": [
                     {
-                        "description": "访问信息",
+                        "description": "Visit payload",
                         "name": "visit",
                         "in": "body",
                         "required": true,
@@ -763,7 +1235,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.APIResponse"
+                                    "$ref": "#/definitions/response.APIResponse"
                                 },
                                 {
                                     "type": "object",
@@ -781,20 +1253,105 @@
         }
     },
     "definitions": {
-        "models.APIResponse": {
+        "handler.ChatMessage": {
             "type": "object",
             "properties": {
-                "code": {
-                    "type": "integer"
+                "content": {
+                    "type": "string",
+                    "example": "Please summarize this article"
                 },
-                "data": {},
-                "msg": {
+                "role": {
+                    "type": "string",
+                    "example": "user"
+                }
+            }
+        },
+        "handler.ChatRequest": {
+            "type": "object",
+            "properties": {
+                "max_tokens": {
+                    "type": "integer",
+                    "example": 512
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Generate three blog titles"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.ChatMessage"
+                    }
+                },
+                "model": {
+                    "type": "string",
+                    "example": "deepseek-chat"
+                },
+                "system": {
+                    "type": "string",
+                    "example": "You are a helpful writing assistant"
+                },
+                "temperature": {
+                    "type": "number",
+                    "example": 0.7
+                }
+            }
+        },
+        "handler.GitHubRepo": {
+            "type": "object",
+            "properties": {
+                "created_at": {
                     "type": "string"
                 },
-                "page": {
+                "description": {
+                    "type": "string"
+                },
+                "fork": {
+                    "type": "boolean"
+                },
+                "forks_count": {
                     "type": "integer"
                 },
-                "total": {
+                "full_name": {
+                    "type": "string"
+                },
+                "homepage": {
+                    "type": "string"
+                },
+                "html_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "open_issues_count": {
+                    "type": "integer"
+                },
+                "private": {
+                    "type": "boolean"
+                },
+                "pushed_at": {
+                    "type": "string"
+                },
+                "stargazers_count": {
+                    "type": "integer"
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "watchers_count": {
                     "type": "integer"
                 }
             }
@@ -842,8 +1399,16 @@
                 "created_at": {
                     "$ref": "#/definitions/models.CustomTime"
                 },
+                "description": {
+                    "description": "分类描述",
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
+                },
+                "img_url": {
+                    "description": "分类封面图片URL",
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -855,6 +1420,13 @@
                 "sort_order": {
                     "type": "integer"
                 },
+                "tags": {
+                    "description": "分类标签",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "type": {
                     "description": "folder=文件夹, article=文章",
                     "type": "string"
@@ -865,6 +1437,41 @@
                 "url": {
                     "description": "文章类型时存储文章地址",
                     "type": "string"
+                }
+            }
+        },
+        "models.CreateCommentRequest": {
+            "type": "object",
+            "properties": {
+                "article_id": {
+                    "description": "文章ID",
+                    "type": "integer",
+                    "example": 11
+                },
+                "avatar_url": {
+                    "description": "评论者头像（可选）",
+                    "type": "string",
+                    "example": "https://example.com/avatar.jpg"
+                },
+                "content": {
+                    "description": "评论内容",
+                    "type": "string",
+                    "example": "写得很好！"
+                },
+                "email": {
+                    "description": "评论者邮箱（可选）",
+                    "type": "string",
+                    "example": "zhangsan@example.com"
+                },
+                "nickname": {
+                    "description": "评论者昵称",
+                    "type": "string",
+                    "example": "张三"
+                },
+                "parent_id": {
+                    "description": "父评论ID（可选）",
+                    "type": "integer",
+                    "example": 101
                 }
             }
         },
@@ -903,7 +1510,19 @@
                 "account": {
                     "type": "string"
                 },
+                "avatar_url": {
+                    "description": "GitHub 头像 URL",
+                    "type": "string"
+                },
                 "birthday": {
+                    "type": "string"
+                },
+                "github_id": {
+                    "description": "GitHub 用户 ID",
+                    "type": "integer"
+                },
+                "github_url": {
+                    "description": "GitHub 主页 URL",
                     "type": "string"
                 },
                 "id": {
@@ -940,6 +1559,35 @@
                 },
                 "visit_time": {
                     "$ref": "#/definitions/models.CustomTime"
+                }
+            }
+        },
+        "repository.HotTag": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.APIResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "msg": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         }

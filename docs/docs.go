@@ -17,7 +17,12 @@ const docTemplate = `{
     "paths": {
         "/ai/chat": {
             "post": {
-                "description": "服务端代理 DeepSeek Chat Completions，避免前端暴露 API Key",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxy a DeepSeek Chat Completions request without exposing the API key to the frontend.",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,10 +32,10 @@ const docTemplate = `{
                 "tags": [
                     "ai"
                 ],
-                "summary": "DeepSeek 对话代理",
+                "summary": "Proxy DeepSeek chat",
                 "parameters": [
                     {
-                        "description": "对话请求",
+                        "description": "Chat request",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -47,13 +52,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid request",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "服务错误",
+                        "description": "Server error",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -348,48 +353,48 @@ const docTemplate = `{
         },
         "/categories": {
             "get": {
-                "description": "获取所有分类，支持树形结构返回和分页查询",
+                "description": "List categories with optional tree mode and pagination.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "categories"
                 ],
-                "summary": "获取分类列表",
+                "summary": "List categories",
                 "parameters": [
                     {
                         "type": "boolean",
-                        "description": "是否返回树形结构，默认true",
+                        "description": "Return tree structure, default true",
                         "name": "tree",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "父分类ID",
+                        "description": "Parent category ID",
                         "name": "parent_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "类型筛选：folder或article",
+                        "description": "Category type filter: folder or article",
                         "name": "type",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "标题模糊搜索关键词",
+                        "description": "Category name keyword",
                         "name": "keyword",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "页码，从1开始",
+                        "description": "Page number starting from 1",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "每页数量，默认10",
+                        "description": "Page size",
                         "name": "page_size",
                         "in": "query"
                     }
@@ -417,7 +422,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "查询失败",
+                        "description": "Query failed",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -425,7 +430,12 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "创建一个新的分类，可以是顶级分类或子分类。",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new category or nested child category.",
                 "consumes": [
                     "application/json"
                 ],
@@ -435,10 +445,10 @@ const docTemplate = `{
                 "tags": [
                     "categories"
                 ],
-                "summary": "创建分类",
+                "summary": "Create category",
                 "parameters": [
                     {
-                        "description": "分类信息",
+                        "description": "Category payload",
                         "name": "category",
                         "in": "body",
                         "required": true,
@@ -467,13 +477,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid request",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "创建失败",
+                        "description": "Create failed",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -483,14 +493,14 @@ const docTemplate = `{
         },
         "/categories/hot-tags": {
             "get": {
-                "description": "获取使用次数前6的标签",
+                "description": "Get the most frequently used tags.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "categories"
                 ],
-                "summary": "获取热门标签",
+                "summary": "Get hot tags",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -514,7 +524,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "查询失败",
+                        "description": "Query failed",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -524,18 +534,18 @@ const docTemplate = `{
         },
         "/categories/{id}": {
             "get": {
-                "description": "根据ID获取分类详情，包含子分类",
+                "description": "Get a category and its nested children by ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "categories"
                 ],
-                "summary": "获取单个分类详情",
+                "summary": "Get category detail",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "分类ID",
+                        "description": "Category ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -561,13 +571,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid ID",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
-                        "description": "分类不存在",
+                        "description": "Category not found",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -575,7 +585,12 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "更新分类信息",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update category fields.",
                 "consumes": [
                     "application/json"
                 ],
@@ -585,17 +600,17 @@ const docTemplate = `{
                 "tags": [
                     "categories"
                 ],
-                "summary": "更新分类",
+                "summary": "Update category",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "分类ID",
+                        "description": "Category ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "分类信息",
+                        "description": "Category payload",
                         "name": "category",
                         "in": "body",
                         "required": true,
@@ -624,13 +639,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid request",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
-                        "description": "分类不存在",
+                        "description": "Category not found",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -638,18 +653,23 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "删除分类，子分类会一并删除",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete a category and its descendants.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "categories"
                 ],
-                "summary": "删除分类",
+                "summary": "Delete category",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "分类ID",
+                        "description": "Category ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -657,19 +677,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "删除成功",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid request",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
-                        "description": "分类不存在",
+                        "description": "Category not found",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -679,36 +699,31 @@ const docTemplate = `{
         },
         "/comments": {
             "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "根据文章ID获取评论列表，支持分页（针对根评论）",
+                "description": "Get paginated root comments and nested replies for an article.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "comments"
                 ],
-                "summary": "获取文章评论列表",
+                "summary": "List article comments",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "文章ID",
+                        "description": "Article ID",
                         "name": "article_id",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "页码，默认1",
+                        "description": "Page number",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "每页数量，默认10",
+                        "description": "Page size",
                         "name": "page_size",
                         "in": "query"
                     }
@@ -725,10 +740,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "Bearer": []
+                        "ApiKeyAuth": []
                     }
                 ],
-                "description": "为文章创建评论，支持回复其他评论",
+                "description": "Create a comment or reply for an article.",
                 "consumes": [
                     "application/json"
                 ],
@@ -738,10 +753,10 @@ const docTemplate = `{
                 "tags": [
                     "comments"
                 ],
-                "summary": "创建评论",
+                "summary": "Create comment",
                 "parameters": [
                     {
-                        "description": "评论信息",
+                        "description": "Comment payload",
                         "name": "comment",
                         "in": "body",
                         "required": true,
@@ -764,21 +779,21 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "Bearer": []
+                        "ApiKeyAuth": []
                     }
                 ],
-                "description": "根据ID删除评论",
+                "description": "Delete a comment by ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "comments"
                 ],
-                "summary": "删除评论",
+                "summary": "Delete comment",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "评论ID",
+                        "description": "Comment ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -847,7 +862,7 @@ const docTemplate = `{
         },
         "/guest": {
             "post": {
-                "description": "记录访客进入网站的时间和内容信息",
+                "description": "Record a guest entry event.",
                 "consumes": [
                     "application/json"
                 ],
@@ -857,10 +872,10 @@ const docTemplate = `{
                 "tags": [
                     "guest"
                 ],
-                "summary": "记录访客进入信息",
+                "summary": "Create guest record",
                 "parameters": [
                     {
-                        "description": "访客记录信息",
+                        "description": "Guest record payload",
                         "name": "record",
                         "in": "body",
                         "required": true,
@@ -942,14 +957,28 @@ const docTemplate = `{
         },
         "/owner/today-visits": {
             "get": {
-                "description": "获取博客主人今天的访问次数统计",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get today's visit count for the owner.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "owner"
                 ],
-                "summary": "获取博客主人今日访问次数",
+                "summary": "Get owner today visits",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -974,26 +1003,32 @@ const docTemplate = `{
         },
         "/owner/visits": {
             "get": {
-                "description": "获取博客主人指定天数内每天访问次数的统计信息，如果是博主访问则自动增加访问计数",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get visit stats for the owner over the last N days.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "owner"
                 ],
-                "summary": "获取博客主人访问统计",
+                "summary": "Get owner visit stats",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "获取最近多少天的数据，默认7天",
+                        "description": "Number of days, default 7",
                         "name": "days",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Bearer Token（博主访问时传入可增加访问计数）",
+                        "description": "Bearer Token",
                         "name": "Authorization",
-                        "in": "header"
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1020,7 +1055,12 @@ const docTemplate = `{
         },
         "/upload": {
             "post": {
-                "description": "将图片上传到图床服务器并返回URL",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Upload an image to the remote image host and forward its response.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1030,11 +1070,11 @@ const docTemplate = `{
                 "tags": [
                     "upload"
                 ],
-                "summary": "代理上传图片到图床",
+                "summary": "Proxy image upload",
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "图片文件",
+                        "description": "Image file",
                         "name": "file",
                         "in": "formData",
                         "required": true
@@ -1042,7 +1082,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "上传成功返回图片信息",
+                        "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -1051,13 +1091,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "请求错误",
+                        "description": "Invalid request",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "上传失败",
+                        "description": "Upload failed",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -1145,14 +1185,14 @@ const docTemplate = `{
         },
         "/visits": {
             "get": {
-                "description": "检索所有用户访问日志的列表",
+                "description": "Get paginated visit logs.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "visits"
                 ],
-                "summary": "获取所有访问日志",
+                "summary": "List visit logs",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1178,7 +1218,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "记录一次新的用户访问",
+                "description": "Record a user visit.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1188,10 +1228,10 @@ const docTemplate = `{
                 "tags": [
                     "visits"
                 ],
-                "summary": "记录用户访问",
+                "summary": "Create visit log",
                 "parameters": [
                     {
-                        "description": "访问信息",
+                        "description": "Visit payload",
                         "name": "visit",
                         "in": "body",
                         "required": true,
@@ -1229,7 +1269,7 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string",
-                    "example": "请帮我总结这篇文章"
+                    "example": "Please summarize this article"
                 },
                 "role": {
                     "type": "string",
@@ -1246,7 +1286,7 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "example": "帮我生成一个博客标题"
+                    "example": "Generate three blog titles"
                 },
                 "messages": {
                     "type": "array",
@@ -1260,7 +1300,7 @@ const docTemplate = `{
                 },
                 "system": {
                     "type": "string",
-                    "example": "你是一个技术博客写作助手"
+                    "example": "You are a helpful writing assistant"
                 },
                 "temperature": {
                     "type": "number",
@@ -1567,12 +1607,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
-	Host:             "localhost:8080",
-	BasePath:         "/",
+	Version:          "",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "My Blog API",
-	Description:      "This is a sample server for a blog application.",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

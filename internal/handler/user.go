@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"myblog_last_new/internal/repository"
 	"myblog_last_new/internal/response"
+	"myblog_last_new/internal/security"
 	"myblog_last_new/pkg/models"
 	"net/http"
+	"strings"
 )
 
 // UserHandler 处理用户相关请求
@@ -55,10 +57,37 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	u.Name = strings.TrimSpace(u.Name)
+	u.Account = strings.TrimSpace(u.Account)
+	u.Nickname = strings.TrimSpace(u.Nickname)
+
+	if u.Name == "" {
+		response.BadRequest(w, "Name is required")
+		return
+	}
+
+	if u.Account == "" {
+		response.BadRequest(w, "Account is required")
+		return
+	}
+
+	if strings.TrimSpace(u.Password) == "" {
+		response.BadRequest(w, "Password is required")
+		return
+	}
+
+	hashedPassword, err := security.HashPassword(u.Password)
+	if err != nil {
+		response.InternalError(w, "Failed to hash password")
+		return
+	}
+	u.Password = hashedPassword
+
 	if err := h.repo.Create(&u); err != nil {
 		response.InternalError(w, "Failed to create user: "+err.Error())
 		return
 	}
 
+	u.Password = ""
 	response.Created(w, u)
 }

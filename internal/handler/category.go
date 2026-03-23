@@ -11,26 +11,27 @@ import (
 	"strings"
 )
 
-// CategoryHandler 处理分类相关请求
+// CategoryHandler handles category-related requests.
 type CategoryHandler struct {
 	repo *repository.CategoryRepository
 }
 
-// NewCategoryHandler 创建新的 CategoryHandler
+// NewCategoryHandler creates a new CategoryHandler.
 func NewCategoryHandler(repo *repository.CategoryRepository) *CategoryHandler {
 	return &CategoryHandler{repo: repo}
 }
 
 // CreateCategory godoc
-// @Summary 创建分类
-// @Description 创建一个新的分类，可以是顶级分类或子分类。
+// @Summary Create category
+// @Description Create a new category or nested child category.
 // @Tags categories
-// @Accept  json
-// @Produce  json
-// @Param   category   body    models.Category   true  "分类信息"
+// @Accept json
+// @Produce json
+// @Param category body models.Category true "Category payload"
 // @Success 201 {object} response.APIResponse{data=models.Category}
-// @Failure 400 {object} response.APIResponse "参数错误"
-// @Failure 500 {object} response.APIResponse "创建失败"
+// @Failure 400 {object} response.APIResponse "Invalid request"
+// @Failure 500 {object} response.APIResponse "Create failed"
+// @Security ApiKeyAuth
 // @Router /categories [post]
 func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	var category models.Category
@@ -61,7 +62,7 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 
 	id, err := h.repo.Create(&category)
 	if err != nil {
-		response.InternalError(w, "创建分类失败: "+err.Error())
+		response.InternalError(w, "Failed to create category: "+err.Error())
 		return
 	}
 
@@ -70,18 +71,18 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 }
 
 // GetCategories godoc
-// @Summary 获取分类列表
-// @Description 获取所有分类，支持树形结构返回和分页查询
+// @Summary List categories
+// @Description List categories with optional tree mode and pagination.
 // @Tags categories
-// @Produce  json
-// @Param   tree      query    bool    false  "是否返回树形结构，默认true"
-// @Param   parent_id query    int     false  "父分类ID"
-// @Param   type      query    string  false  "类型筛选：folder或article"
-// @Param   keyword   query    string  false  "标题模糊搜索关键词"
-// @Param   page      query    int     false  "页码，从1开始"
-// @Param   page_size query    int     false  "每页数量，默认10"
+// @Produce json
+// @Param tree query bool false "Return tree structure, default true"
+// @Param parent_id query int false "Parent category ID"
+// @Param type query string false "Category type filter: folder or article"
+// @Param keyword query string false "Category name keyword"
+// @Param page query int false "Page number starting from 1"
+// @Param page_size query int false "Page size"
 // @Success 200 {object} response.APIResponse{data=[]models.Category}
-// @Failure 500 {object} response.APIResponse "查询失败"
+// @Failure 500 {object} response.APIResponse "Query failed"
 // @Router /categories [get]
 func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) {
 	treeMode := r.URL.Query().Get("tree") != "false"
@@ -100,7 +101,6 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// 解析分页参数
 	var page, pageSize int
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
@@ -112,7 +112,6 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 			pageSize = ps
 		}
 	}
-	// 如果指定了page但没有page_size，默认10
 	if page > 0 && pageSize == 0 {
 		pageSize = 10
 	}
@@ -125,15 +124,12 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// 如果启用分页，返回带分页信息的响应
 	if page > 0 {
 		response.SuccessWithPage(w, categories, total, page)
 		return
 	}
 
-	// 非分页模式
 	var result interface{}
-	// 使用关键词搜索时，直接返回扁平列表
 	if treeMode && parentIDStr == "" && filter.Keyword == "" {
 		result = repository.BuildCategoryTree(categories)
 	} else {
@@ -144,14 +140,14 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetCategoryByID godoc
-// @Summary 获取单个分类详情
-// @Description 根据ID获取分类详情，包含子分类
+// @Summary Get category detail
+// @Description Get a category and its nested children by ID.
 // @Tags categories
-// @Produce  json
-// @Param   id   path    int     true  "分类ID"
+// @Produce json
+// @Param id path int true "Category ID"
 // @Success 200 {object} response.APIResponse{data=models.Category}
-// @Failure 400 {object} response.APIResponse "参数错误"
-// @Failure 404 {object} response.APIResponse "分类不存在"
+// @Failure 400 {object} response.APIResponse "Invalid ID"
+// @Failure 404 {object} response.APIResponse "Category not found"
 // @Router /categories/{id} [get]
 func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request) {
 	idStr := h.extractID(r.URL.Path, "/categories/")
@@ -166,7 +162,7 @@ func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	category, err := h.repo.GetByID(categoryID)
+	category, err := h.repo.GetSubtree(categoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.NotFound(w, "Category not found")
@@ -176,25 +172,21 @@ func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	children, err := h.repo.GetChildren(categoryID)
-	if err == nil && len(children) > 0 {
-		category.Children = children
-	}
-
 	response.Success(w, category)
 }
 
 // UpdateCategory godoc
-// @Summary 更新分类
-// @Description 更新分类信息
+// @Summary Update category
+// @Description Update category fields.
 // @Tags categories
-// @Accept  json
-// @Produce  json
-// @Param   id   path    int     true  "分类ID"
-// @Param   category   body    models.Category   true  "分类信息"
+// @Accept json
+// @Produce json
+// @Param id path int true "Category ID"
+// @Param category body models.Category true "Category payload"
 // @Success 200 {object} response.APIResponse{data=models.Category}
-// @Failure 400 {object} response.APIResponse "参数错误"
-// @Failure 404 {object} response.APIResponse "分类不存在"
+// @Failure 400 {object} response.APIResponse "Invalid request"
+// @Failure 404 {object} response.APIResponse "Category not found"
+// @Security ApiKeyAuth
 // @Router /categories/{id} [put]
 func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	idStr := h.extractID(r.URL.Path, "/categories/")
@@ -246,14 +238,15 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 }
 
 // DeleteCategory godoc
-// @Summary 删除分类
-// @Description 删除分类，子分类会一并删除
+// @Summary Delete category
+// @Description Delete a category and its descendants.
 // @Tags categories
-// @Produce  json
-// @Param   id   path    int     true  "分类ID"
-// @Success 200 {object} response.APIResponse "删除成功"
-// @Failure 400 {object} response.APIResponse "参数错误"
-// @Failure 404 {object} response.APIResponse "分类不存在"
+// @Produce json
+// @Param id path int true "Category ID"
+// @Success 200 {object} response.APIResponse
+// @Failure 400 {object} response.APIResponse "Invalid request"
+// @Failure 404 {object} response.APIResponse "Category not found"
+// @Security ApiKeyAuth
 // @Router /categories/{id} [delete]
 func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	idStr := h.extractID(r.URL.Path, "/categories/")
@@ -282,28 +275,26 @@ func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request)
 	response.Success(w, map[string]string{"message": "Category deleted successfully"})
 }
 
-// extractID 从 URL 路径提取 ID
 func (h *CategoryHandler) extractID(path, prefix string) string {
 	path = strings.TrimPrefix(path, "/api")
 	return strings.TrimPrefix(path, prefix)
 }
 
 // GetHotTags godoc
-// @Summary 获取热门标签
-// @Description 获取使用次数前6的标签
+// @Summary Get hot tags
+// @Description Get the most frequently used tags.
 // @Tags categories
-// @Produce  json
+// @Produce json
 // @Success 200 {object} response.APIResponse{data=[]repository.HotTag}
-// @Failure 500 {object} response.APIResponse "查询失败"
+// @Failure 500 {object} response.APIResponse "Query failed"
 // @Router /categories/hot-tags [get]
 func (h *CategoryHandler) GetHotTags(w http.ResponseWriter, r *http.Request) {
 	hotTags, err := h.repo.GetHotTags(6)
 	if err != nil {
-		response.InternalError(w, "获取热门标签失败: "+err.Error())
+		response.InternalError(w, "Failed to get hot tags: "+err.Error())
 		return
 	}
 
-	// 确保返回空数组而不是 null
 	if hotTags == nil {
 		hotTags = []repository.HotTag{}
 	}

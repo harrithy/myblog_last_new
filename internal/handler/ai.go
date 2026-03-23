@@ -27,13 +27,13 @@ type AIHandler struct {
 // ChatMessage represents a single chat message.
 type ChatMessage struct {
 	Role    string `json:"role" example:"user"`
-	Content string `json:"content" example:"请帮我总结这篇文章"`
+	Content string `json:"content" example:"Please summarize this article"`
 }
 
 // ChatRequest represents user input for DeepSeek chat completion.
 type ChatRequest struct {
-	Message     string        `json:"message,omitempty" example:"帮我生成一个博客标题"`
-	System      string        `json:"system,omitempty" example:"你是一个技术博客写作助手"`
+	Message     string        `json:"message,omitempty" example:"Generate three blog titles"`
+	System      string        `json:"system,omitempty" example:"You are a helpful writing assistant"`
 	Messages    []ChatMessage `json:"messages,omitempty"`
 	Model       string        `json:"model,omitempty" example:"deepseek-chat"`
 	Temperature *float64      `json:"temperature,omitempty" example:"0.7"`
@@ -76,15 +76,16 @@ func NewAIHandler() *AIHandler {
 }
 
 // Chat godoc
-// @Summary DeepSeek 对话代理
-// @Description 服务端代理 DeepSeek Chat Completions，避免前端暴露 API Key
+// @Summary Proxy DeepSeek chat
+// @Description Proxy a DeepSeek Chat Completions request without exposing the API key to the frontend.
 // @Tags ai
 // @Accept json
 // @Produce json
-// @Param body body ChatRequest true "对话请求"
+// @Param body body ChatRequest true "Chat request"
 // @Success 200 {object} response.APIResponse
-// @Failure 400 {object} response.APIResponse "参数错误"
-// @Failure 500 {object} response.APIResponse "服务错误"
+// @Failure 400 {object} response.APIResponse "Invalid request"
+// @Failure 500 {object} response.APIResponse "Server error"
+// @Security ApiKeyAuth
 // @Router /ai/chat [post]
 func (h *AIHandler) Chat(w http.ResponseWriter, r *http.Request) {
 	if h.apiKey == "" {
@@ -214,7 +215,7 @@ func buildChatMessages(req ChatRequest) ([]ChatMessage, error) {
 	}
 
 	if len(messages) == 0 {
-		return nil, errBadRequest(`message or messages is required, e.g. {"message":"帮我生成3个Go博客标题"}`)
+		return nil, errBadRequest(`message or messages is required, e.g. {"message":"Generate 3 Go blog titles"}`)
 	}
 
 	return messages, nil

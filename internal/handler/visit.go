@@ -2,26 +2,22 @@ package handler
 
 import (
 	"encoding/json"
-	"myblog_last_new/internal/middleware"
 	"myblog_last_new/internal/repository"
 	"myblog_last_new/internal/response"
 	"myblog_last_new/pkg/models"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
-// VisitHandler 处理访问相关请求
+// VisitHandler handles visit-related requests.
 type VisitHandler struct {
 	visitRepo *repository.VisitRepository
 	guestRepo *repository.GuestRepository
 	ownerRepo *repository.OwnerVisitRepository
 }
 
-// NewVisitHandler 创建新的 VisitHandler
+// NewVisitHandler creates a new VisitHandler.
 func NewVisitHandler(visitRepo *repository.VisitRepository, guestRepo *repository.GuestRepository, ownerRepo *repository.OwnerVisitRepository) *VisitHandler {
 	return &VisitHandler{
 		visitRepo: visitRepo,
@@ -31,12 +27,12 @@ func NewVisitHandler(visitRepo *repository.VisitRepository, guestRepo *repositor
 }
 
 // LogVisit godoc
-// @Summary 记录用户访问
-// @Description 记录一次新的用户访问
+// @Summary Create visit log
+// @Description Record a user visit.
 // @Tags visits
-// @Accept  json
-// @Produce  json
-// @Param   visit   body    models.VisitLog   true  "访问信息"
+// @Accept json
+// @Produce json
+// @Param visit body models.VisitLog true "Visit payload"
 // @Success 201 {object} response.APIResponse{data=models.VisitLog}
 // @Router /visits [post]
 func (h *VisitHandler) LogVisit(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +57,6 @@ func (h *VisitHandler) LogVisit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 异步清理旧记录
 	go h.visitRepo.CleanupOld(20)
 
 	visit.ID = int(id)
@@ -73,10 +68,10 @@ func (h *VisitHandler) LogVisit(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetVisitLogs godoc
-// @Summary 获取所有访问日志
-// @Description 检索所有用户访问日志的列表
+// @Summary List visit logs
+// @Description Get paginated visit logs.
 // @Tags visits
-// @Produce  json
+// @Produce json
 // @Success 200 {object} response.APIResponse{data=[]models.VisitLog}
 // @Router /visits [get]
 func (h *VisitHandler) GetVisitLogs(w http.ResponseWriter, r *http.Request) {
@@ -100,12 +95,12 @@ func (h *VisitHandler) GetVisitLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 // LogGuestRecord godoc
-// @Summary 记录访客进入信息
-// @Description 记录访客进入网站的时间和内容信息
+// @Summary Create guest record
+// @Description Record a guest entry event.
 // @Tags guest
-// @Accept  json
-// @Produce  json
-// @Param   record   body    models.GuestRecord   true  "访客记录信息"
+// @Accept json
+// @Produce json
+// @Param record body models.GuestRecord true "Guest record payload"
 // @Success 201 {object} response.APIResponse{data=models.GuestRecord}
 // @Router /guest [post]
 func (h *VisitHandler) LogGuestRecord(w http.ResponseWriter, r *http.Request) {
@@ -140,20 +135,16 @@ func (h *VisitHandler) LogGuestRecord(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetOwnerVisitStats godoc
-// @Summary 获取博客主人访问统计
-// @Description 获取博客主人指定天数内每天访问次数的统计信息，如果是博主访问则自动增加访问计数
+// @Summary Get owner visit stats
+// @Description Get visit stats for the owner over the last N days.
 // @Tags owner
-// @Produce  json
-// @Param   days   query    int     false  "获取最近多少天的数据，默认7天"
-// @Param   Authorization   header    string     false  "Bearer Token（博主访问时传入可增加访问计数）"
+// @Produce json
+// @Param days query int false "Number of days, default 7"
+// @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} response.APIResponse{data=object}
+// @Security ApiKeyAuth
 // @Router /owner/visits [get]
 func (h *VisitHandler) GetOwnerVisitStats(w http.ResponseWriter, r *http.Request) {
-	// 检查是否是博主访问，如果是则记录访问
-	if isOwner := h.checkIsOwner(r); isOwner {
-		go h.ownerRepo.RecordVisit()
-	}
-
 	days := r.URL.Query().Get("days")
 	if days == "" {
 		days = "7"
@@ -172,34 +163,14 @@ func (h *VisitHandler) GetOwnerVisitStats(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// checkIsOwner 检查请求是否来自博主
-func (h *VisitHandler) checkIsOwner(r *http.Request) bool {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return false
-	}
-
-	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-	claims := &middleware.Claims{}
-
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte("my_secret_key"), nil
-	})
-
-	if err != nil || !token.Valid {
-		return false
-	}
-
-	// 检查是否是博主（普通登录或 GitHub 登录或邮箱登录）
-	return claims.Username == "harrio" || claims.Username == "github_156180607" || claims.Username == "harrithy@github.com"
-}
-
 // GetOwnerTodayVisits godoc
-// @Summary 获取博客主人今日访问次数
-// @Description 获取博客主人今天的访问次数统计
+// @Summary Get owner today visits
+// @Description Get today's visit count for the owner.
 // @Tags owner
-// @Produce  json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} response.APIResponse{data=object}
+// @Security ApiKeyAuth
 // @Router /owner/today-visits [get]
 func (h *VisitHandler) GetOwnerTodayVisits(w http.ResponseWriter, r *http.Request) {
 	todayVisits, err := h.ownerRepo.GetTodayVisits()

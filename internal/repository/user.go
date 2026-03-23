@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"myblog_last_new/pkg/models"
+	"strings"
 )
 
 // UserRepository 处理用户数据访问
@@ -17,7 +18,11 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 // GetAll 返回所有用户
 func (r *UserRepository) GetAll() ([]models.User, error) {
-	rows, err := r.db.Query("SELECT id, name, email FROM users")
+	rows, err := r.db.Query(`
+		SELECT id, name, COALESCE(account, email), COALESCE(nickname, ''), COALESCE(DATE_FORMAT(birthday, '%Y-%m-%d'), '')
+		FROM users
+		ORDER BY id ASC
+	`)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +31,7 @@ func (r *UserRepository) GetAll() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Name, &u.Account); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.Account, &u.Nickname, &u.Birthday); err != nil {
 			return nil, err
 		}
 		users = append(users, u)
@@ -34,22 +39,38 @@ func (r *UserRepository) GetAll() ([]models.User, error) {
 	return users, nil
 }
 
-// GetByEmail 根据邮箱返回用户
-func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
+// GetByLogin returns a user by email or account.
+func (r *UserRepository) GetByLogin(login string) (*models.User, error) {
 	var user models.User
-	err := r.db.QueryRow("SELECT id, name, email FROM users WHERE email = ?", email).
-		Scan(&user.ID, &user.Name, &user.Account)
+	err := r.db.QueryRow(`
+		SELECT id, name, COALESCE(account, email), COALESCE(nickname, ''), COALESCE(DATE_FORMAT(birthday, '%Y-%m-%d'), ''), COALESCE(password, '')
+		FROM users
+		WHERE email = ? OR account = ?
+		LIMIT 1
+	`, login, login).
+		Scan(&user.ID, &user.Name, &user.Account, &user.Nickname, &user.Birthday, &user.Password)
 	if err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
+// GetByEmail keeps compatibility with older call sites.
+func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
+	return r.GetByLogin(email)
+}
+
 // Create 创建新用户
 func (r *UserRepository) Create(u *models.User) error {
+	account := strings.TrimSpace(u.Account)
+	var birthday interface{}
+	if strings.TrimSpace(u.Birthday) != "" {
+		birthday = u.Birthday
+	}
+
 	_, err := r.db.Exec(
-		"INSERT INTO users(name, email, nickname, birthday) VALUES(?, ?, ?, ?)",
-		u.Name, u.Account, u.Nickname, u.Birthday,
+		"INSERT INTO users(name, email, account, password, nickname, birthday) VALUES(?, ?, ?, ?, ?, ?)",
+		u.Name, account, account, u.Password, u.Nickname, birthday,
 	)
 	return err
 }
@@ -105,8 +126,8 @@ func (r *UserRepository) FindOrCreateByGitHub(githubUser *models.GitHubUser) (*m
 	}
 
 	result, err := r.db.Exec(
-		"INSERT INTO users(name, email, nickname, github_id, avatar_url, github_url) VALUES(?, ?, ?, ?, ?, ?)",
-		name, email, githubUser.Login, githubUser.ID, githubUser.AvatarURL, githubUser.HTMLURL,
+		"INSERT INTO users(name, email, account, nickname, github_id, avatar_url, github_url) VALUES(?, ?, ?, ?, ?, ?, ?)",
+		name, email, email, githubUser.Login, githubUser.ID, githubUser.AvatarURL, githubUser.HTMLURL,
 	)
 	if err != nil {
 		return nil, err

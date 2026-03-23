@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <title>分类管理</title>
     <style>
         * {
@@ -1719,6 +1722,277 @@
             }
         }
 
+        /* Display Refresh 2026.1 */
+        body {
+            font-family: 'IBM Plex Sans', system-ui, sans-serif;
+            background:
+                radial-gradient(circle at 10% 10%, rgba(34, 211, 238, 0.24) 0, transparent 38%),
+                radial-gradient(circle at 92% 18%, rgba(245, 158, 11, 0.16) 0, transparent 34%),
+                radial-gradient(circle at 78% 78%, rgba(15, 118, 110, 0.12) 0, transparent 28%),
+                linear-gradient(180deg, #f7fcff 0%, #ecfeff 42%, #f8fafc 100%);
+        }
+
+        body::before {
+            width: 360px;
+            height: 360px;
+            left: -120px;
+            top: -150px;
+            background: radial-gradient(circle, rgba(8, 145, 178, 0.24), rgba(8, 145, 178, 0));
+        }
+
+        body::after {
+            width: 380px;
+            height: 380px;
+            right: -140px;
+            bottom: -190px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.18), rgba(14, 165, 233, 0));
+        }
+
+        .container {
+            max-width: 1360px;
+        }
+
+        .page-header {
+            position: relative;
+            overflow: hidden;
+            align-items: stretch;
+            padding: 28px 30px;
+            margin-bottom: 26px;
+            border-radius: 28px;
+            border: 1px solid rgba(125, 211, 252, 0.42);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(236, 254, 255, 0.78) 50%, rgba(240, 249, 255, 0.92) 100%);
+            box-shadow: 0 30px 60px -46px rgba(8, 145, 178, 0.55), 0 24px 40px -48px rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(8, 145, 178, 0.08), transparent 42%), linear-gradient(300deg, rgba(245, 158, 11, 0.08), transparent 36%);
+            pointer-events: none;
+        }
+
+        .page-title-wrap,
+        .page-metrics {
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            margin-bottom: 14px;
+            border-radius: 999px;
+            background: rgba(8, 145, 178, 0.08);
+            color: #0f766e;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .page-kicker::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #0891b2, #22d3ee);
+            box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.18);
+        }
+
+        .page-title-wrap h1 {
+            font-family: 'Fraunces', Georgia, serif;
+            font-size: clamp(2.2rem, 3vw, 3.2rem);
+            letter-spacing: -0.04em;
+            color: #082f49;
+        }
+
+        .page-subtitle {
+            margin-top: 14px;
+            max-width: 660px;
+            color: #33546a;
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .page-metrics {
+            align-content: flex-start;
+            max-width: 420px;
+        }
+
+        .metric-pill {
+            min-height: 44px;
+            padding: 11px 16px;
+            border: 1px solid rgba(125, 211, 252, 0.36);
+            background: rgba(255, 255, 255, 0.86);
+            color: #33546a;
+            box-shadow: 0 18px 30px -28px rgba(8, 145, 178, 0.42);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 32px 48px -44px rgba(15, 23, 42, 0.52), 0 18px 34px -36px rgba(8, 145, 178, 0.55);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .card::before {
+            height: 3px;
+            background: linear-gradient(90deg, rgba(8, 145, 178, 0.82), rgba(34, 211, 238, 0.28), rgba(245, 158, 11, 0.18));
+        }
+
+        .card-header {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+
+        .card-header h2 {
+            font-size: 1.22rem;
+            color: #082f49;
+        }
+
+        .card-header h2::before {
+            width: 10px;
+            height: 10px;
+            box-shadow: 0 0 0 8px rgba(34, 211, 238, 0.14);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea,
+        .search-wrapper input {
+            background: rgba(255, 255, 255, 0.94);
+        }
+
+        .type-option {
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.82);
+        }
+
+        .type-option .icon {
+            border-radius: 14px;
+        }
+
+        .stats-bar {
+            border: 1px solid rgba(125, 211, 252, 0.28);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(236, 254, 255, 0.72) 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .stat-item strong {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.94rem;
+            color: #0f172a;
+        }
+
+        .search-wrapper input {
+            box-shadow: 0 14px 28px -28px rgba(8, 145, 178, 0.4);
+        }
+
+        .tree-item {
+            position: relative;
+            margin-bottom: 10px;
+            padding: 15px 16px;
+            border: 1px solid rgba(125, 211, 252, 0.22);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.86) 100%);
+            box-shadow: 0 18px 30px -32px rgba(15, 23, 42, 0.34);
+        }
+
+        .tree-item::after {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 14px;
+            bottom: 14px;
+            width: 2px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(8, 145, 178, 0.72), rgba(34, 211, 238, 0));
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .tree-item:hover {
+            transform: translateX(4px);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(236, 254, 255, 0.88) 100%);
+            border-color: rgba(8, 145, 178, 0.2);
+            box-shadow: 0 24px 36px -34px rgba(8, 145, 178, 0.45);
+        }
+
+        .tree-item:hover::after {
+            opacity: 1;
+        }
+
+        .tree-item .name {
+            font-weight: 600;
+            color: #082f49;
+            letter-spacing: -0.01em;
+        }
+
+        .tree-item .url-hint {
+            color: #0f766e;
+            background: rgba(240, 253, 250, 0.9);
+            border: 1px solid rgba(45, 212, 191, 0.2);
+            border-radius: 999px;
+            padding: 4px 10px;
+            max-width: 210px;
+        }
+
+        .type-badge.folder {
+            background: rgba(224, 231, 255, 0.9);
+            color: #4338ca;
+        }
+
+        .type-badge.article {
+            background: rgba(236, 253, 245, 0.96);
+            color: #047857;
+        }
+
+        .tree-children {
+            margin-left: 24px;
+            padding-left: 18px;
+            border-left: 1px dashed rgba(14, 165, 233, 0.24);
+        }
+
+        .action-btn {
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.74);
+        }
+
+        .action-btn.edit:hover,
+        .action-btn.select:hover,
+        .action-btn.delete:hover {
+            border-color: currentColor;
+        }
+
+        .upload-btn,
+        .btn-primary {
+            background: linear-gradient(135deg, #0f766e 0%, #0891b2 100%);
+            box-shadow: 0 16px 28px -26px rgba(8, 145, 178, 0.68);
+        }
+
+        .upload-btn:hover,
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0f8a7d 0%, #0ea5c6 100%);
+        }
+
+        .preview-item {
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 16px 26px -30px rgba(15, 23, 42, 0.35);
+        }
+
+        .modal {
+            border: 1px solid rgba(125, 211, 252, 0.26);
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
         @media (max-width: 760px) {
             body {
                 padding: 14px;
@@ -1766,6 +2040,7 @@
     <div class="container">
         <header class="page-header">
             <div class="page-title-wrap">
+                <span class="page-kicker">Content Atlas</span>
                 <h1>分类管理</h1>
                 <p class="page-subtitle">维护目录结构、文章入口与标签体系，让内容归档更清晰。</p>
             </div>
@@ -2262,6 +2537,47 @@
             }, 3000);
         }
 
+        const TOKEN_STORAGE_KEY = 'myblog_api_token';
+
+        function normalizeAuthToken(token) {
+            const value = (token || '').trim();
+            if (!value) return '';
+            return value.toLowerCase().startsWith('bearer ') ? value : `Bearer ${value}`;
+        }
+
+        function getStoredAuthToken() {
+            return normalizeAuthToken(localStorage.getItem(TOKEN_STORAGE_KEY));
+        }
+
+        function ensureAuthToken() {
+            const storedToken = getStoredAuthToken();
+            if (storedToken) {
+                return storedToken;
+            }
+
+            const input = window.prompt('请输入管理页 JWT Token');
+            const token = normalizeAuthToken(input);
+            if (!token) {
+                showToast('需要登录后才能执行该操作', 'error');
+                return '';
+            }
+
+            localStorage.setItem(TOKEN_STORAGE_KEY, token);
+            return token;
+        }
+
+        function buildAuthHeaders(headers = {}) {
+            const token = ensureAuthToken();
+            if (!token) {
+                throw new Error('missing auth token');
+            }
+
+            return {
+                ...headers,
+                Authorization: token
+            };
+        }
+
         // 加载分类列表
         async function loadCategories() {
             const treeContainer = document.getElementById('categoryTree');
@@ -2493,7 +2809,7 @@
             try {
                 const response = await fetch(`${API_BASE}/api/categories/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify(data)
                 });
                 
@@ -2520,7 +2836,8 @@
             
             try {
                 const response = await fetch(`${API_BASE}/api/categories/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: buildAuthHeaders()
                 });
                 
                 const result = await response.json();
@@ -2621,7 +2938,7 @@
             try {
                 const response = await fetch(apiUrl, {
                     method: method,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify(data)
                 });
                 
@@ -2648,6 +2965,7 @@
             try {
                 const response = await fetch(`${API_BASE}/api/upload`, {
                     method: 'POST',
+                    headers: buildAuthHeaders(),
                     body: formData
                 });
                 

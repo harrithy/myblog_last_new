@@ -3,87 +3,86 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"myblog_last_new/pkg/models"
 )
 
-// CategoryRepository 处理分类数据访问
+// CategoryRepository handles category data access.
 type CategoryRepository struct {
 	db *sql.DB
 }
 
-// NewCategoryRepository 创建新的 CategoryRepository
+// NewCategoryRepository creates a new CategoryRepository.
 func NewCategoryRepository(db *sql.DB) *CategoryRepository {
 	return &CategoryRepository{db: db}
 }
 
-// CategoryFilter 表示分类查询的过滤选项
+// CategoryFilter represents category query options.
 type CategoryFilter struct {
 	ParentID *int
 	Type     string
-	Keyword  string // 标题模糊搜索关键词
-	Page     int    // 页码，从1开始
-	PageSize int    // 每页数量
+	Keyword  string
+	Page     int
+	PageSize int
 }
 
-// parseTags 解析 JSON 格式的标签
 func parseTags(tagsJSON string) []string {
 	if tagsJSON == "" {
 		return nil
 	}
+
 	var tags []string
 	if err := json.Unmarshal([]byte(tagsJSON), &tags); err != nil {
 		return nil
 	}
+
 	return tags
 }
 
-// tagsToJSON 将标签转换为 JSON 格式
 func tagsToJSON(tags []string) string {
 	if len(tags) == 0 {
 		return ""
 	}
+
 	data, err := json.Marshal(tags)
 	if err != nil {
 		return ""
 	}
+
 	return string(data)
 }
 
-// HotTag 表示热门标签
+// HotTag represents a frequently used tag.
 type HotTag struct {
 	Name  string `json:"name"`
 	Count int    `json:"count"`
 }
 
-// GetHotTags 获取热门标签（使用次数前 N 个）
+// GetHotTags returns the most frequently used tags.
 func (r *CategoryRepository) GetHotTags(limit int) ([]HotTag, error) {
-	// 查询所有分类的标签
 	rows, err := r.db.Query("SELECT IFNULL(tags, '') FROM categories WHERE tags IS NOT NULL AND tags != ''")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	// 统计标签使用次数
 	tagCount := make(map[string]int)
 	for rows.Next() {
 		var tagsJSON string
 		if err := rows.Scan(&tagsJSON); err != nil {
 			continue
 		}
-		tags := parseTags(tagsJSON)
-		for _, tag := range tags {
+
+		for _, tag := range parseTags(tagsJSON) {
 			tagCount[tag]++
 		}
 	}
 
-	// 转换为切片并排序
 	var hotTags []HotTag
 	for name, count := range tagCount {
 		hotTags = append(hotTags, HotTag{Name: name, Count: count})
 	}
 
-	// 按使用次数降序排序
 	for i := 0; i < len(hotTags)-1; i++ {
 		for j := i + 1; j < len(hotTags); j++ {
 			if hotTags[j].Count > hotTags[i].Count {
@@ -92,7 +91,6 @@ func (r *CategoryRepository) GetHotTags(limit int) ([]HotTag, error) {
 		}
 	}
 
-	// 取前 limit 个
 	if len(hotTags) > limit {
 		hotTags = hotTags[:limit]
 	}
@@ -100,9 +98,8 @@ func (r *CategoryRepository) GetHotTags(limit int) ([]HotTag, error) {
 	return hotTags, nil
 }
 
-// GetAll 返回所有分类，支持可选过滤和分页
+// GetAll returns categories with optional filtering and pagination.
 func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, int64, error) {
-	// 构建 WHERE 条件
 	whereClauses := "WHERE 1=1"
 	var args []interface{}
 
@@ -111,7 +108,7 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, i
 		args = append(args, *filter.ParentID)
 	}
 
-	if filter.Type != "" && (filter.Type == "folder" || filter.Type == "article") {
+	if filter.Type == "folder" || filter.Type == "article" {
 		whereClauses += " AND type = ?"
 		args = append(args, filter.Type)
 	}
@@ -121,18 +118,17 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, i
 		args = append(args, "%"+filter.Keyword+"%")
 	}
 
-	// 查询总数
 	var total int64
 	countQuery := "SELECT COUNT(*) FROM categories " + whereClauses
 	if err := r.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
-	// 构建查询语句
-	query := "SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at FROM categories " + whereClauses
-	query += " ORDER BY sort_order ASC, id ASC"
+	query := `
+		SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at
+		FROM categories ` + whereClauses + `
+		ORDER BY sort_order ASC, id ASC`
 
-	// 添加分页
 	if filter.Page > 0 && filter.PageSize > 0 {
 		offset := (filter.Page - 1) * filter.PageSize
 		query += " LIMIT ? OFFSET ?"
@@ -145,36 +141,37 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, i
 	}
 	defer rows.Close()
 
-	var categories []models.Category
-	for rows.Next() {
-		var cat models.Category
-		var parentID sql.NullInt64
-		var tagsJSON string
-		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.Description, &tagsJSON, &cat.URL, &cat.ImgURL, &parentID, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
-			return nil, 0, err
-		}
-		if parentID.Valid {
-			pid := int(parentID.Int64)
-			cat.ParentID = &pid
-		}
-		cat.Tags = parseTags(tagsJSON)
-		categories = append(categories, cat)
+	categories, err := scanCategories(rows)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	return categories, total, nil
 }
 
-// GetByID 根据 ID 返回分类
+// GetByID returns a category by ID.
 func (r *CategoryRepository) GetByID(id int) (*models.Category, error) {
 	var category models.Category
 	var parentID sql.NullInt64
 	var tagsJSON string
 
 	err := r.db.QueryRow(`
-		SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at 
-		FROM categories WHERE id = ?
-	`, id).Scan(&category.ID, &category.Name, &category.Type, &category.Description, &tagsJSON, &category.URL, &category.ImgURL, &parentID, &category.SortOrder, &category.CreatedAt, &category.UpdatedAt)
-
+		SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at
+		FROM categories
+		WHERE id = ?
+	`, id).Scan(
+		&category.ID,
+		&category.Name,
+		&category.Type,
+		&category.Description,
+		&tagsJSON,
+		&category.URL,
+		&category.ImgURL,
+		&parentID,
+		&category.SortOrder,
+		&category.CreatedAt,
+		&category.UpdatedAt,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -188,17 +185,53 @@ func (r *CategoryRepository) GetByID(id int) (*models.Category, error) {
 	return &category, nil
 }
 
-// Exists 检查分类是否存在
+// GetSubtree returns a category and all nested descendants using a single query.
+func (r *CategoryRepository) GetSubtree(id int) (*models.Category, error) {
+	rows, err := r.db.Query(`
+		SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at
+		FROM categories
+		ORDER BY sort_order ASC, id ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	categories, err := scanCategories(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	categoryMap, roots := buildCategoryTree(categories)
+	category, ok := categoryMap[id]
+	if !ok {
+		return nil, sql.ErrNoRows
+	}
+
+	if category.ParentID == nil {
+		for _, root := range roots {
+			if root.ID == id {
+				return &root, nil
+			}
+		}
+	}
+
+	return category, nil
+}
+
+// Exists checks whether a category exists.
 func (r *CategoryRepository) Exists(id int) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE id = ?)", id).Scan(&exists)
 	return exists, err
 }
 
-// Create 创建新分类
+// Create creates a category.
 func (r *CategoryRepository) Create(cat *models.Category) (int64, error) {
-	var result sql.Result
-	var err error
+	var (
+		result sql.Result
+		err    error
+	)
 
 	tagsJSON := tagsToJSON(cat.Tags)
 
@@ -213,7 +246,6 @@ func (r *CategoryRepository) Create(cat *models.Category) (int64, error) {
 			cat.Name, cat.Type, cat.Description, tagsJSON, cat.URL, cat.ImgURL, cat.SortOrder,
 		)
 	}
-
 	if err != nil {
 		return 0, err
 	}
@@ -221,10 +253,12 @@ func (r *CategoryRepository) Create(cat *models.Category) (int64, error) {
 	return result.LastInsertId()
 }
 
-// Update 更新分类
+// Update updates a category.
 func (r *CategoryRepository) Update(id int, cat *models.Category) (int64, error) {
-	var result sql.Result
-	var err error
+	var (
+		result sql.Result
+		err    error
+	)
 
 	tagsJSON := tagsToJSON(cat.Tags)
 
@@ -239,7 +273,6 @@ func (r *CategoryRepository) Update(id int, cat *models.Category) (int64, error)
 			cat.Name, cat.Type, cat.Description, tagsJSON, cat.URL, cat.ImgURL, cat.SortOrder, id,
 		)
 	}
-
 	if err != nil {
 		return 0, err
 	}
@@ -247,7 +280,7 @@ func (r *CategoryRepository) Update(id int, cat *models.Category) (int64, error)
 	return result.RowsAffected()
 }
 
-// Delete 删除分类
+// Delete deletes a category.
 func (r *CategoryRepository) Delete(id int) (int64, error) {
 	result, err := r.db.Exec("DELETE FROM categories WHERE id = ?", id)
 	if err != nil {
@@ -256,69 +289,118 @@ func (r *CategoryRepository) Delete(id int) (int64, error) {
 	return result.RowsAffected()
 }
 
-// GetChildren 返回父分类的子分类
+// GetChildren returns all nested children for a category.
 func (r *CategoryRepository) GetChildren(parentID int) ([]models.Category, error) {
-	rows, err := r.db.Query(`
-		SELECT id, name, type, IFNULL(description, ''), IFNULL(tags, ''), IFNULL(url, ''), IFNULL(img_url, ''), parent_id, sort_order, created_at, updated_at 
-		FROM categories 
-		WHERE parent_id = ?
-		ORDER BY sort_order ASC, id ASC
-	`, parentID)
+	subtree, err := r.GetSubtree(parentID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []models.Category{}, nil
+		}
 		return nil, err
 	}
-	defer rows.Close()
 
-	var children []models.Category
-	for rows.Next() {
-		var cat models.Category
-		var pid sql.NullInt64
-		var tagsJSON string
-		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.Description, &tagsJSON, &cat.URL, &cat.ImgURL, &pid, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
-			return nil, err
-		}
-		if pid.Valid {
-			p := int(pid.Int64)
-			cat.ParentID = &p
-		}
-		cat.Tags = parseTags(tagsJSON)
-		// Recursively get children
-		subChildren, _ := r.GetChildren(cat.ID)
-		if len(subChildren) > 0 {
-			cat.Children = subChildren
-		}
-		children = append(children, cat)
+	if subtree.Children == nil {
+		return []models.Category{}, nil
 	}
 
-	return children, nil
+	return subtree.Children, nil
 }
 
-// BuildCategoryTree 将扁平分类列表构建成树形结构
+// BuildCategoryTree builds a category tree from a flat list.
 func BuildCategoryTree(categories []models.Category) []models.Category {
-	categoryMap := make(map[int]*models.Category)
-	var roots []models.Category
+	_, roots := buildCategoryTree(categories)
+	return roots
+}
+
+func scanCategories(rows *sql.Rows) ([]models.Category, error) {
+	var categories []models.Category
+	for rows.Next() {
+		var cat models.Category
+		var parentID sql.NullInt64
+		var tagsJSON string
+		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Type, &cat.Description, &tagsJSON, &cat.URL, &cat.ImgURL, &parentID, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
+			return nil, err
+		}
+
+		if parentID.Valid {
+			pid := int(parentID.Int64)
+			cat.ParentID = &pid
+		}
+		cat.Tags = parseTags(tagsJSON)
+		cat.Children = []models.Category{}
+		categories = append(categories, cat)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return categories, nil
+}
+
+func buildCategoryTree(categories []models.Category) (map[int]*models.Category, []models.Category) {
+	baseCategories := make(map[int]models.Category, len(categories))
+	childIDs := make(map[int][]int, len(categories))
+	rootIDs := make([]int, 0)
 
 	for i := range categories {
-		categories[i].Children = []models.Category{}
-		categoryMap[categories[i].ID] = &categories[i]
+		cat := categories[i]
+		cat.Children = []models.Category{}
+		baseCategories[cat.ID] = cat
 	}
 
 	for i := range categories {
-		cat := &categories[i]
+		cat := categories[i]
 		if cat.ParentID == nil {
-			roots = append(roots, *cat)
-		} else {
-			if parent, ok := categoryMap[*cat.ParentID]; ok {
-				parent.Children = append(parent.Children, *cat)
+			rootIDs = append(rootIDs, cat.ID)
+			continue
+		}
+
+		if _, ok := baseCategories[*cat.ParentID]; !ok {
+			rootIDs = append(rootIDs, cat.ID)
+			continue
+		}
+
+		childIDs[*cat.ParentID] = append(childIDs[*cat.ParentID], cat.ID)
+	}
+
+	categoryMap := make(map[int]*models.Category, len(baseCategories))
+	var build func(int) *models.Category
+	build = func(id int) *models.Category {
+		if category, ok := categoryMap[id]; ok {
+			return category
+		}
+
+		base, ok := baseCategories[id]
+		if !ok {
+			return nil
+		}
+
+		node := base
+		node.Children = make([]models.Category, 0, len(childIDs[id]))
+		categoryMap[id] = &node
+
+		for _, childID := range childIDs[id] {
+			child := build(childID)
+			if child != nil {
+				node.Children = append(node.Children, *child)
 			}
 		}
+
+		categoryMap[id] = &node
+		return &node
 	}
 
-	for i := range roots {
-		if mapped, ok := categoryMap[roots[i].ID]; ok {
-			roots[i].Children = mapped.Children
+	for id := range baseCategories {
+		build(id)
+	}
+
+	roots := make([]models.Category, 0, len(rootIDs))
+	for _, rootID := range rootIDs {
+		if root := build(rootID); root != nil {
+			roots = append(roots, *root)
 		}
 	}
 
-	return roots
+	return categoryMap, roots
 }

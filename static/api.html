@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API 接口文档 - My Blog</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
+                        display: ['Fraunces', 'serif'],
                         sans: ['IBM Plex Sans', 'system-ui', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
                     },
@@ -37,16 +38,16 @@
                             900: '#0F172A',
                         },
                         accent: {
-                            green: '#22C55E',
-                            emerald: '#10B981',
-                            blue: '#3B82F6',
-                            sky: '#0EA5E9',
+                            green: '#14B8A6',
+                            emerald: '#0F766E',
+                            blue: '#0EA5E9',
+                            sky: '#38BDF8',
                             amber: '#F59E0B',
-                            orange: '#F97316',
+                            orange: '#FB923C',
                             red: '#EF4444',
                             rose: '#F43F5E',
-                            purple: '#A855F7',
-                            violet: '#8B5CF6',
+                            purple: '#F97316',
+                            violet: '#F59E0B',
                             cyan: '#06B6D4',
                         }
                     },
@@ -184,6 +185,205 @@
         .code-block {
             background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
         }
+        :root {
+            color-scheme: light;
+            --shell-border: rgba(148, 163, 184, 0.2);
+            --shell-shadow: 0 30px 60px -42px rgba(15, 23, 42, 0.4);
+        }
+
+        .dark:root {
+            color-scheme: dark;
+            --shell-border: rgba(71, 85, 105, 0.32);
+            --shell-shadow: 0 36px 70px -48px rgba(2, 6, 23, 0.82);
+        }
+
+        body {
+            position: relative;
+            overflow-x: hidden;
+            background:
+                radial-gradient(circle at 12% 12%, rgba(20, 184, 166, 0.12) 0, transparent 34%),
+                radial-gradient(circle at 88% 14%, rgba(56, 189, 248, 0.12) 0, transparent 30%),
+                linear-gradient(180deg, #f8fbff 0%, #f1f7fb 48%, #eef2f7 100%);
+        }
+
+        .dark body {
+            background:
+                radial-gradient(circle at 12% 12%, rgba(20, 184, 166, 0.1) 0, transparent 30%),
+                radial-gradient(circle at 88% 16%, rgba(14, 165, 233, 0.1) 0, transparent 34%),
+                linear-gradient(180deg, #06101c 0%, #08131f 52%, #0b1727 100%);
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 999px;
+            pointer-events: none;
+            filter: blur(18px);
+            z-index: 0;
+        }
+
+        body::before {
+            width: 320px;
+            height: 320px;
+            top: -120px;
+            left: -90px;
+            background: radial-gradient(circle, rgba(20, 184, 166, 0.18), rgba(20, 184, 166, 0));
+        }
+
+        body::after {
+            width: 360px;
+            height: 360px;
+            right: -140px;
+            bottom: -160px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.16), rgba(14, 165, 233, 0));
+        }
+
+        .top-bar {
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow: 0 24px 40px -38px rgba(15, 23, 42, 0.35);
+        }
+
+        .dark .top-bar {
+            background: rgba(8, 19, 31, 0.72);
+            box-shadow: 0 28px 48px -38px rgba(2, 6, 23, 0.72);
+        }
+
+        .top-bar h1 {
+            font-family: 'Fraunces', serif;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-banner {
+            position: relative;
+            overflow: hidden;
+            border-radius: 32px;
+            border: 1px solid var(--shell-border);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.86) 0%, rgba(240, 249, 255, 0.82) 48%, rgba(236, 253, 245, 0.88) 100%);
+            box-shadow: var(--shell-shadow);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .dark .hero-banner {
+            background: linear-gradient(135deg, rgba(8, 19, 31, 0.92) 0%, rgba(15, 23, 42, 0.9) 48%, rgba(8, 47, 73, 0.88) 100%);
+        }
+
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, rgba(20, 184, 166, 0.12), transparent 40%), linear-gradient(290deg, rgba(245, 158, 11, 0.08), transparent 34%);
+            pointer-events: none;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(20, 184, 166, 0.1);
+            color: #0f766e;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .dark .hero-kicker {
+            color: #7dd3fc;
+            background: rgba(6, 182, 212, 0.12);
+        }
+
+        .hero-kicker::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #14b8a6, #38bdf8);
+            box-shadow: 0 0 0 6px rgba(20, 184, 166, 0.14);
+        }
+
+        .hero-title {
+            font-family: 'Fraunces', serif;
+            letter-spacing: -0.04em;
+            line-height: 1;
+        }
+
+        .hero-chip {
+            border: 1px solid rgba(20, 184, 166, 0.16);
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow: 0 16px 28px -30px rgba(15, 23, 42, 0.28);
+        }
+
+        .dark .hero-chip {
+            background: rgba(15, 23, 42, 0.7);
+            border-color: rgba(56, 189, 248, 0.16);
+        }
+
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--shell-border) !important;
+            box-shadow: 0 24px 36px -34px rgba(15, 23, 42, 0.28);
+        }
+
+        .dark .metric-card {
+            box-shadow: 0 30px 44px -38px rgba(2, 6, 23, 0.72);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), transparent 55%);
+            pointer-events: none;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(20, 184, 166, 0.22) !important;
+            box-shadow: 0 34px 50px -40px rgba(15, 23, 42, 0.34);
+        }
+
+        .dark .metric-card:hover {
+            box-shadow: 0 42px 68px -46px rgba(2, 6, 23, 0.82);
+        }
+
+        .nav-shell {
+            box-shadow: var(--shell-shadow);
+        }
+
+        .api-card {
+            border-color: var(--shell-border) !important;
+            box-shadow: 0 28px 44px -40px rgba(15, 23, 42, 0.28);
+        }
+
+        .dark .api-card {
+            box-shadow: 0 34px 56px -46px rgba(2, 6, 23, 0.74);
+        }
+
+        .api-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 40px 60px -46px rgba(15, 23, 42, 0.34);
+        }
+
+        .dark .api-card:hover {
+            box-shadow: 0 42px 68px -46px rgba(2, 6, 23, 0.82);
+        }
+
+        #searchResults,
+        #responseFieldsList,
+        #paramsContainer,
+        #headersContainer {
+            box-shadow: 0 24px 40px -36px rgba(15, 23, 42, 0.24);
+        }
+
+        .code-block {
+            border: 1px solid rgba(71, 85, 105, 0.28);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
     </style>
 </head>
 <body class="bg-light-50 dark:bg-dark-950 text-light-900 dark:text-slate-100 min-h-screen transition-colors duration-300 bg-grid">
@@ -195,7 +395,7 @@
     </div>
 
     <!-- Header -->
-    <header class="glass border-b border-light-200/50 dark:border-dark-700/30 sticky top-0 z-50 transition-colors duration-300">
+    <header class="glass top-bar border-b border-light-200/50 dark:border-dark-700/30 sticky top-0 z-50 transition-colors duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <!-- Logo -->
@@ -251,10 +451,34 @@
         </div>
     </header>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8 relative">
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 relative z-10 animate-fade-in">
+        <div class="hero-banner px-6 py-7 sm:px-8 sm:py-8">
+            <div class="grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.7fr)] items-end">
+                <div class="relative z-10">
+                    <span class="hero-kicker">Developer Atlas</span>
+                    <h2 class="hero-title text-4xl sm:text-5xl text-light-900 dark:text-white mt-4">鏇存竻鏅扮殑鎺ュ彛瑙嗗浘锛岀洿鎺ュ湪椤甸潰閲屽畬鎴愯皟璇曘€?/h2>
+                    <p class="mt-4 max-w-2xl text-sm sm:text-base text-light-600 dark:text-dark-400 leading-7">
+                        鎶婃帴鍙ｆ枃妗ｃ€佸瓧娈佃鏄庛€佽韩浠借璇佷笌鍦ㄧ嚎璇锋眰鏀跺埌涓€涓洿濂界湅涔熸洿椤烘墜鐨勫伐浣滃彴閲岋紝璁╄皟璇曞儚缈荤湅鍦板浘涓€鏍峰揩銆?
+                    </p>
+                </div>
+                <div class="relative z-10 grid gap-3">
+                    <div class="hero-chip rounded-2xl px-4 py-3">
+                        <div class="text-[11px] uppercase tracking-[0.18em] text-light-400 dark:text-dark-500">Mode</div>
+                        <div class="mt-1 text-sm font-medium text-light-900 dark:text-white">Swagger + Field Notes + Live Tester</div>
+                    </div>
+                    <div class="hero-chip rounded-2xl px-4 py-3">
+                        <div class="text-[11px] uppercase tracking-[0.18em] text-light-400 dark:text-dark-500">Focus</div>
+                        <div class="mt-1 text-sm font-medium text-light-900 dark:text-white">鍑忓皯鏉冮檺璇曢敊锛岃鍝嶅簲缁撴瀯涓€鐪肩湅娓呫€?/div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8 relative z-10">
         <!-- 侧边栏 -->
         <aside class="w-64 flex-shrink-0 hidden lg:block">
-            <div class="glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 overflow-hidden sticky top-24 transition-colors duration-300">
+            <div class="nav-shell glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 overflow-hidden sticky top-24 transition-colors duration-300">
                 <div class="p-4 border-b border-light-200/50 dark:border-dark-700/30 bg-gradient-to-r from-accent-green/5 to-transparent">
                     <h3 class="text-sm font-semibold text-light-900 dark:text-white flex items-center gap-2">
                         <svg class="w-4 h-4 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,7 +504,7 @@
             <!-- 统计卡片 -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <!-- 总接口数 -->
-                <div class="group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-light-300 dark:hover:border-dark-600/50 transition-all duration-300 cursor-default">
+                <div class="metric-card group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-light-300 dark:hover:border-dark-600/50 transition-all duration-300 cursor-default">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-gradient-to-br from-light-200 to-light-100 dark:from-dark-700 dark:to-dark-800 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                             <svg class="w-6 h-6 text-light-600 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,7 +519,7 @@
                 </div>
                 
                 <!-- GET 请求 -->
-                <div class="group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-green/30 transition-all duration-300 cursor-default">
+                <div class="metric-card group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-green/30 transition-all duration-300 cursor-default">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-gradient-to-br from-accent-green/20 to-accent-emerald/10 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                             <span class="text-sm font-bold text-accent-green font-mono">GET</span>
@@ -308,7 +532,7 @@
                 </div>
                 
                 <!-- POST 请求 -->
-                <div class="group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-blue/30 transition-all duration-300 cursor-default">
+                <div class="metric-card group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-blue/30 transition-all duration-300 cursor-default">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-gradient-to-br from-accent-blue/20 to-accent-sky/10 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                             <span class="text-sm font-bold text-accent-blue font-mono">POST</span>
@@ -321,7 +545,7 @@
                 </div>
                 
                 <!-- 其他请求 -->
-                <div class="group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-amber/30 transition-all duration-300 cursor-default">
+                <div class="metric-card group glass rounded-2xl border border-light-200/50 dark:border-dark-700/30 p-5 hover:border-accent-amber/30 transition-all duration-300 cursor-default">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-gradient-to-br from-accent-amber/20 to-accent-orange/10 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                             <span class="text-xs font-bold text-accent-amber font-mono">OTHER</span>
@@ -1111,6 +1335,21 @@
             const html = document.documentElement;
             if (html.classList.contains('dark')) { html.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
             else { html.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
+        }
+
+        const heroTitle = document.querySelector('.hero-banner .hero-title');
+        if (heroTitle) {
+            heroTitle.textContent = 'A clearer API map, with testing built straight into the page.';
+        }
+
+        const heroCopy = document.querySelector('.hero-banner .hero-title + p');
+        if (heroCopy) {
+            heroCopy.textContent = 'Keep docs, field notes, auth headers, and live request testing in one polished workspace so debugging feels fast and predictable.';
+        }
+
+        const heroFocus = document.querySelector('.hero-chip:last-child .mt-1');
+        if (heroFocus) {
+            heroFocus.textContent = 'Reduce auth mistakes and make response shapes obvious at a glance.';
         }
 
         loadSwagger();

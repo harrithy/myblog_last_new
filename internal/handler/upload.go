@@ -5,32 +5,36 @@ import (
 	"mime/multipart"
 	"myblog_last_new/internal/response"
 	"net/http"
+	"time"
 )
 
 const ImageHostURL = "https://image.harrio.xyz/upload"
 
-// UploadHandler 处理文件上传代理
+// UploadHandler proxies image uploads to the image host.
 type UploadHandler struct{}
 
-// NewUploadHandler 创建新的 UploadHandler
+// NewUploadHandler creates a new UploadHandler.
 func NewUploadHandler() *UploadHandler {
 	return &UploadHandler{}
 }
 
 // ProxyUpload godoc
-// @Summary 代理上传图片到图床
-// @Description 将图片上传到图床服务器并返回URL
+// @Summary Proxy image upload
+// @Description Upload an image to the remote image host and forward its response.
 // @Tags upload
 // @Accept multipart/form-data
 // @Produce json
-// @Param file formData file true "图片文件"
-// @Success 200 {array} object "上传成功返回图片信息"
-// @Failure 400 {object} response.APIResponse "请求错误"
-// @Failure 500 {object} response.APIResponse "上传失败"
+// @Param file formData file true "Image file"
+// @Success 200 {array} object
+// @Failure 400 {object} response.APIResponse "Invalid request"
+// @Failure 500 {object} response.APIResponse "Upload failed"
+// @Security ApiKeyAuth
 // @Router /upload [post]
 func (h *UploadHandler) ProxyUpload(w http.ResponseWriter, r *http.Request) {
-	// 限制上传文件大小为 10MB
-	r.ParseMultipartForm(10 << 20)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		response.BadRequest(w, "Failed to parse multipart form: "+err.Error())
+		return
+	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -39,7 +43,6 @@ func (h *UploadHandler) ProxyUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// 创建新的 multipart 请求
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
 
@@ -51,18 +54,17 @@ func (h *UploadHandler) ProxyUpload(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		io.Copy(part, file)
+		_, _ = io.Copy(part, file)
 	}()
 
-	// 发送请求到图床
-	req, err := http.NewRequest("POST", ImageHostURL, pr)
+	req, err := http.NewRequest(http.MethodPost, ImageHostURL, pr)
 	if err != nil {
 		response.InternalError(w, "Failed to create request: "+err.Error())
 		return
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		response.InternalError(w, "Failed to upload to image host: "+err.Error())
@@ -70,8 +72,7 @@ func (h *UploadHandler) ProxyUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// 直接转发图床的响应
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	_, _ = io.Copy(w, resp.Body)
 }

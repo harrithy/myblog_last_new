@@ -5,243 +5,106 @@ import (
 	"myblog_last_new/pkg/models"
 )
 
-// CommentRepository 处理评论数据访问
+// CommentRepository handles comment data access.
 type CommentRepository struct {
 	db *sql.DB
 }
 
-// NewCommentRepository 创建新的 CommentRepository
+// NewCommentRepository creates a new CommentRepository.
 func NewCommentRepository(db *sql.DB) *CommentRepository {
 	return &CommentRepository{db: db}
 }
 
-// GetByArticleID 返回文章的所有评论
+// GetByArticleID returns all comments for an article.
 func (r *CommentRepository) GetByArticleID(articleID int) ([]models.Comment, error) {
-	query := `
+	rows, err := r.db.Query(`
 		SELECT id, article_id, parent_id, nickname, email, avatar_url, content, created_at
 		FROM comments
 		WHERE article_id = ?
 		ORDER BY created_at ASC
-	`
-
-	rows, err := r.db.Query(query, articleID)
+	`, articleID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	commentMap := make(map[int]*models.Comment)
-	var rootComments []*models.Comment
-
-	for rows.Next() {
-		var comment models.Comment
-		var parentID sql.NullInt64
-		var email sql.NullString
-		var avatarURL sql.NullString
-
-		err := rows.Scan(
-			&comment.ID,
-			&comment.ArticleID,
-			&parentID,
-			&comment.Nickname,
-			&email,
-			&avatarURL,
-			&comment.Content,
-			&comment.CreatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if parentID.Valid {
-			pid := int(parentID.Int64)
-			comment.ParentID = &pid
-		}
-		if email.Valid {
-			comment.Email = email.String
-		}
-		if avatarURL.Valid {
-			comment.AvatarURL = avatarURL.String
-		}
-
-		comment.Children = []models.Comment{}
-		commentMap[comment.ID] = &comment
+	comments, rootOrder, err := scanComments(rows)
+	if err != nil {
+		return nil, err
 	}
 
-	// Build tree structure
-	for _, comment := range commentMap {
-		if comment.ParentID == nil {
-			rootComments = append(rootComments, comment)
-		} else {
-			if parent, ok := commentMap[*comment.ParentID]; ok {
-				parent.Children = append(parent.Children, *comment)
-			}
-		}
-	}
-
-	result := make([]models.Comment, 0, len(rootComments))
-	for _, c := range rootComments {
-		result = append(result, *c)
-	}
-
-	return result, nil
+	return buildCommentTree(comments, rootOrder), nil
 }
 
-// GetByArticleIDWithPagination 支持分页获取文章评论
+// GetByArticleIDWithPagination returns paginated root comments plus nested replies.
 func (r *CommentRepository) GetByArticleIDWithPagination(articleID, page, pageSize int) ([]models.Comment, int64, error) {
-	// 1. Count root comments
 	var total int64
-	err := r.db.QueryRow("SELECT COUNT(*) FROM comments WHERE article_id = ? AND parent_id IS NULL", articleID).Scan(&total)
-	if err != nil {
+	if err := r.db.QueryRow("SELECT COUNT(*) FROM comments WHERE article_id = ? AND parent_id IS NULL", articleID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-
 	if total == 0 {
 		return []models.Comment{}, 0, nil
 	}
 
 	offset := (page - 1) * pageSize
 
-	// 2. Fetch root comments
-	query := `
+	rootRows, err := r.db.Query(`
 		SELECT id, article_id, parent_id, nickname, email, avatar_url, content, created_at
 		FROM comments
 		WHERE article_id = ? AND parent_id IS NULL
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?
-	`
-	rows, err := r.db.Query(query, articleID, pageSize, offset)
+	`, articleID, pageSize, offset)
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
+	defer rootRows.Close()
 
-	commentMap := make(map[int]*models.Comment)
-	var rootComments []*models.Comment
-
-	for rows.Next() {
-		var comment models.Comment
-		var parentID sql.NullInt64
-		var email sql.NullString
-		var avatarURL sql.NullString
-
-		err := rows.Scan(
-			&comment.ID,
-			&comment.ArticleID,
-			&parentID,
-			&comment.Nickname,
-			&email,
-			&avatarURL,
-			&comment.Content,
-			&comment.CreatedAt,
-		)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		if parentID.Valid {
-			pid := int(parentID.Int64)
-			comment.ParentID = &pid
-		}
-		if email.Valid {
-			comment.Email = email.String
-		}
-		if avatarURL.Valid {
-			comment.AvatarURL = avatarURL.String
-		}
-
-		comment.Children = []models.Comment{}
-		// 注意：这里需要复制一份，否则循环变量地址问题
-		c := comment
-		commentMap[comment.ID] = &c
-		rootComments = append(rootComments, &c)
+	rootComments, rootOrder, err := scanComments(rootRows)
+	if err != nil {
+		return nil, 0, err
 	}
 
-	// 3. Fetch ALL child comments for the article to build the tree
-	childQuery := `
+	childRows, err := r.db.Query(`
 		SELECT id, article_id, parent_id, nickname, email, avatar_url, content, created_at
 		FROM comments
 		WHERE article_id = ? AND parent_id IS NOT NULL
 		ORDER BY created_at ASC
-	`
-	childRows, err := r.db.Query(childQuery, articleID)
+	`, articleID)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer childRows.Close()
 
-	for childRows.Next() {
-		var comment models.Comment
-		var parentID sql.NullInt64
-		var email sql.NullString
-		var avatarURL sql.NullString
-
-		err := childRows.Scan(
-			&comment.ID,
-			&comment.ArticleID,
-			&parentID,
-			&comment.Nickname,
-			&email,
-			&avatarURL,
-			&comment.Content,
-			&comment.CreatedAt,
-		)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		if parentID.Valid {
-			pid := int(parentID.Int64)
-			comment.ParentID = &pid
-		}
-		if email.Valid {
-			comment.Email = email.String
-		}
-		if avatarURL.Valid {
-			comment.AvatarURL = avatarURL.String
-		}
-
-		comment.Children = []models.Comment{}
-		c := comment
-		commentMap[comment.ID] = &c
+	childComments, _, err := scanComments(childRows)
+	if err != nil {
+		return nil, 0, err
 	}
 
-	// 4. Build Tree
-	for _, comment := range commentMap {
-		if comment.ParentID != nil {
-			if parent, ok := commentMap[*comment.ParentID]; ok {
-				parent.Children = append(parent.Children, *comment)
-			}
-		}
-	}
-
-	// 5. Construct result
-	result := make([]models.Comment, 0, len(rootComments))
-	for _, c := range rootComments {
-		result = append(result, *c)
-	}
-
-	return result, total, nil
+	comments := append(rootComments, childComments...)
+	return buildCommentTree(comments, rootOrder), total, nil
 }
 
-// ArticleExists 检查文章是否存在
+// ArticleExists checks whether the target article exists.
 func (r *CommentRepository) ArticleExists(articleID int) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE id = ? AND type = 'article')", articleID).Scan(&exists)
 	return exists, err
 }
 
-// ParentCommentExists 检查父评论是否存在
+// ParentCommentExists checks whether the parent comment exists for the article.
 func (r *CommentRepository) ParentCommentExists(parentID, articleID int) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow("SELECT EXISTS(SELECT 1 FROM comments WHERE id = ? AND article_id = ?)", parentID, articleID).Scan(&exists)
 	return exists, err
 }
 
-// Create 创建新评论
+// Create creates a comment.
 func (r *CommentRepository) Create(articleID int, parentID *int, nickname, email, avatarURL, content string) (*models.Comment, error) {
-	var result sql.Result
-	var err error
+	var (
+		result sql.Result
+		err    error
+	)
 
 	if parentID != nil {
 		result, err = r.db.Exec(
@@ -254,24 +117,20 @@ func (r *CommentRepository) Create(articleID int, parentID *int, nickname, email
 			articleID, nickname, email, avatarURL, content,
 		)
 	}
-
 	if err != nil {
 		return nil, err
 	}
 
 	id, _ := result.LastInsertId()
 
-	// Fetch the created comment
 	var comment models.Comment
 	var pID sql.NullInt64
 	var em sql.NullString
 	var av sql.NullString
-
 	err = r.db.QueryRow(
 		"SELECT id, article_id, parent_id, nickname, email, avatar_url, content, created_at FROM comments WHERE id = ?",
 		id,
 	).Scan(&comment.ID, &comment.ArticleID, &pID, &comment.Nickname, &em, &av, &comment.Content, &comment.CreatedAt)
-
 	if err != nil {
 		return nil, err
 	}
@@ -290,11 +149,118 @@ func (r *CommentRepository) Create(articleID int, parentID *int, nickname, email
 	return &comment, nil
 }
 
-// Delete 根据 ID 删除评论
+// Delete deletes a comment by ID.
 func (r *CommentRepository) Delete(id int) (int64, error) {
 	result, err := r.db.Exec("DELETE FROM comments WHERE id = ?", id)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+func scanComments(rows *sql.Rows) ([]models.Comment, []int, error) {
+	var comments []models.Comment
+	var rootOrder []int
+
+	for rows.Next() {
+		var comment models.Comment
+		var parentID sql.NullInt64
+		var email sql.NullString
+		var avatarURL sql.NullString
+
+		if err := rows.Scan(
+			&comment.ID,
+			&comment.ArticleID,
+			&parentID,
+			&comment.Nickname,
+			&email,
+			&avatarURL,
+			&comment.Content,
+			&comment.CreatedAt,
+		); err != nil {
+			return nil, nil, err
+		}
+
+		if parentID.Valid {
+			pid := int(parentID.Int64)
+			comment.ParentID = &pid
+		} else {
+			rootOrder = append(rootOrder, comment.ID)
+		}
+		if email.Valid {
+			comment.Email = email.String
+		}
+		if avatarURL.Valid {
+			comment.AvatarURL = avatarURL.String
+		}
+
+		comment.Children = []models.Comment{}
+		comments = append(comments, comment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+
+	return comments, rootOrder, nil
+}
+
+func buildCommentTree(comments []models.Comment, rootOrder []int) []models.Comment {
+	baseComments := make(map[int]models.Comment, len(comments))
+	childIDs := make(map[int][]int, len(comments))
+
+	for _, comment := range comments {
+		comment.Children = []models.Comment{}
+		baseComments[comment.ID] = comment
+	}
+
+	if len(rootOrder) == 0 {
+		for _, comment := range comments {
+			if comment.ParentID == nil {
+				rootOrder = append(rootOrder, comment.ID)
+			}
+		}
+	}
+
+	for _, comment := range comments {
+		if comment.ParentID != nil {
+			childIDs[*comment.ParentID] = append(childIDs[*comment.ParentID], comment.ID)
+		}
+	}
+
+	nodes := make(map[int]*models.Comment, len(baseComments))
+	var build func(int) *models.Comment
+	build = func(id int) *models.Comment {
+		if node, ok := nodes[id]; ok {
+			return node
+		}
+
+		base, ok := baseComments[id]
+		if !ok {
+			return nil
+		}
+
+		node := base
+		node.Children = make([]models.Comment, 0, len(childIDs[id]))
+		nodes[id] = &node
+
+		for _, childID := range childIDs[id] {
+			child := build(childID)
+			if child != nil {
+				node.Children = append(node.Children, *child)
+			}
+		}
+
+		nodes[id] = &node
+		return &node
+	}
+
+	result := make([]models.Comment, 0, len(rootOrder))
+	for _, rootID := range rootOrder {
+		if root := build(rootID); root != nil {
+			result = append(result, *root)
+		}
+	}
+
+	return result
 }
