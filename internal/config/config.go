@@ -50,8 +50,15 @@ func LoadOwnerSettings() OwnerSettings {
 }
 
 // MatchesPasswordLogin returns true when the provided credentials match the owner login.
-func (s OwnerSettings) MatchesPasswordLogin(account, password string) bool {
-	return s.Account != "" && s.Password != "" && account == s.Account && password == s.Password
+func (s OwnerSettings) MatchesPasswordLogin(login, password string) bool {
+	login = strings.TrimSpace(login)
+	password = strings.TrimSpace(password)
+
+	if login == "" || s.Password == "" || password != s.Password {
+		return false
+	}
+
+	return login == s.Account || login == s.Email
 }
 
 // IsOwnerIdentity returns true when the username belongs to the configured owner.

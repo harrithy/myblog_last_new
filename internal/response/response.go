@@ -74,6 +74,11 @@ func Forbidden(w http.ResponseWriter, msg string) {
 	Error(w, http.StatusForbidden, 403, msg)
 }
 
+// Conflict sends a 409 conflict response.
+func Conflict(w http.ResponseWriter, msg string) {
+	Error(w, http.StatusConflict, 409, msg)
+}
+
 // NotFound sends a 404 not found response.
 func NotFound(w http.ResponseWriter, msg string) {
 	Error(w, http.StatusNotFound, 404, msg)

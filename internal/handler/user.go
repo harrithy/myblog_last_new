@@ -57,22 +57,20 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.Name = strings.TrimSpace(u.Name)
-	u.Account = strings.TrimSpace(u.Account)
-	u.Nickname = strings.TrimSpace(u.Nickname)
+	normalizeUserForCreate(&u)
 
-	if u.Name == "" {
-		response.BadRequest(w, "Name is required")
+	if msg := validateUserForCreate(u); msg != "" {
+		response.BadRequest(w, msg)
 		return
 	}
 
-	if u.Account == "" {
-		response.BadRequest(w, "Account is required")
+	conflictMsg, err := getUserCreateConflict(h.repo, u)
+	if err != nil {
+		response.InternalError(w, "Failed to validate user: "+err.Error())
 		return
 	}
-
-	if strings.TrimSpace(u.Password) == "" {
-		response.BadRequest(w, "Password is required")
+	if conflictMsg != "" {
+		response.Conflict(w, conflictMsg)
 		return
 	}
 
@@ -90,4 +88,60 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 
 	u.Password = ""
 	response.Created(w, u)
+}
+
+func normalizeUserForCreate(u *models.User) {
+	u.Name = strings.TrimSpace(u.Name)
+	u.Email = strings.ToLower(strings.TrimSpace(u.Email))
+	u.Account = strings.TrimSpace(u.Account)
+	u.Nickname = strings.TrimSpace(u.Nickname)
+	u.Birthday = strings.TrimSpace(u.Birthday)
+	u.Password = strings.TrimSpace(u.Password)
+
+	if u.Email == "" && strings.Contains(u.Account, "@") {
+		u.Email = strings.ToLower(u.Account)
+	}
+	if u.Name == "" {
+		u.Name = u.Account
+	}
+	if u.Nickname == "" {
+		u.Nickname = u.Name
+	}
+}
+
+func validateUserForCreate(u models.User) string {
+	if u.Email == "" {
+		return "Email is required"
+	}
+	if u.Account == "" {
+		return "Account is required"
+	}
+	if u.Password == "" {
+		return "Password is required"
+	}
+	if u.Name == "" {
+		return "Name is required"
+	}
+
+	return ""
+}
+
+func getUserCreateConflict(repo *repository.UserRepository, u models.User) (string, error) {
+	emailExists, err := repo.ExistsByEmail(u.Email)
+	if err != nil {
+		return "", err
+	}
+	if emailExists {
+		return "Email already exists", nil
+	}
+
+	accountExists, err := repo.ExistsByAccount(u.Account)
+	if err != nil {
+		return "", err
+	}
+	if accountExists {
+		return "Account already exists", nil
+	}
+
+	return "", nil
 }

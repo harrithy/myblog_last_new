@@ -180,14 +180,14 @@ const docTemplate = `{
         },
         "/auth/verify": {
             "get": {
-                "description": "验证 JWT Token 是否有效，返回当前用户信息",
+                "description": "验证 JWT Token 是否有效，并返回当前用户信息",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "验证 Token 有效性",
+                "summary": "验证 Token",
                 "parameters": [
                     {
                         "type": "string",
@@ -199,7 +199,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Token 有效，返回用户信息",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -217,7 +217,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Token 无效或已过期",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -908,7 +908,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "验证用户身份并返回一个 JWT 令牌",
+                "description": "使用用户名或邮箱和密码登录，返回 JWT 令牌和用户信息",
                 "consumes": [
                     "application/json"
                 ],
@@ -921,23 +921,20 @@ const docTemplate = `{
                 "summary": "用户登录",
                 "parameters": [
                     {
-                        "description": "用户凭证",
+                        "description": "登录凭证",
                         "name": "credentials",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/models.AuthCredentials"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "{\"token\": \"...\"}",
+                        "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/models.AuthResponse"
                         }
                     },
                     "400": {
@@ -947,7 +944,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "未找到用户",
+                        "description": "账号或密码错误",
                         "schema": {
                             "type": "string"
                         }
@@ -1048,6 +1045,52 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "使用邮箱、用户名和密码注册，注册成功后直接返回 JWT 令牌",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "用户注册",
+                "parameters": [
+                    {
+                        "description": "注册信息",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "无效的请求体",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "邮箱或用户名已存在",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -1367,6 +1410,34 @@ const docTemplate = `{
                 }
             }
         },
+        "models.AuthCredentials": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "is_owner": {
+                    "type": "boolean"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                }
+            }
+        },
         "models.Blog": {
             "type": "object",
             "properties": {
@@ -1515,6 +1586,29 @@ const docTemplate = `{
                 }
             }
         },
+        "models.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "birthday": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "models.User": {
             "type": "object",
             "properties": {
@@ -1526,6 +1620,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "birthday": {
+                    "type": "string"
+                },
+                "email": {
                     "type": "string"
                 },
                 "github_id": {

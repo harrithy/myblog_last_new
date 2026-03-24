@@ -33,8 +33,9 @@ func TestAddUser(t *testing.T) {
 	token := loginAsOwner(t, mux)
 
 	user := models.User{
-		Name:     "newuser",
-		Account:  "new@example.com",
+		Name:     "New User",
+		Email:    "new@example.com",
+		Account:  "newuser",
 		Password: "newpass123",
 		Nickname: "newbie",
 		Birthday: "2001-01-01",
@@ -65,6 +66,9 @@ func TestAddUser(t *testing.T) {
 	if gotName, _ := data["name"].(string); gotName != user.Name {
 		t.Fatalf("handler returned unexpected body: got name %v want %v", gotName, user.Name)
 	}
+	if gotEmail, _ := data["email"].(string); gotEmail != user.Email {
+		t.Fatalf("handler returned unexpected body: got email %v want %v", gotEmail, user.Email)
+	}
 
 	if password, exists := data["password"]; exists && password != "" {
 		t.Fatalf("password should not be returned in response: %#v", password)
@@ -82,12 +86,158 @@ func TestAddUser(t *testing.T) {
 	if !security.CheckPassword(storedUser.Password, user.Password) {
 		t.Fatalf("stored password hash does not match plain-text password")
 	}
+	if storedUser.Email != user.Email {
+		t.Fatalf("stored email mismatch: got %q want %q", storedUser.Email, user.Email)
+	}
+}
+
+func TestRegisterUser(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	_, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("failed to clear users table: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	router.RegisterRoutes(mux, db)
+
+	reqBody, _ := json.Marshal(models.RegisterRequest{
+		Email:    "reader@example.com",
+		Account:  "reader",
+		Name:     "Reader",
+		Password: "reader-pass",
+		Nickname: "bookworm",
+	})
+	req, _ := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("register returned wrong status: got %d want %d body=%s", rr.Code, http.StatusCreated, rr.Body.String())
+	}
+
+	var registerResp response.APIResponse
+	if err := json.NewDecoder(rr.Body).Decode(&registerResp); err != nil {
+		t.Fatalf("could not decode register response: %v", err)
+	}
+
+	data, ok := registerResp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("unexpected register response data shape: %#v", registerResp.Data)
+	}
+
+	if token, _ := data["token"].(string); token == "" {
+		t.Fatalf("register response did not include a token: %#v", data)
+	}
+
+	userData, ok := data["user"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("register response did not include a user: %#v", data)
+	}
+	if got, _ := userData["email"].(string); got != "reader@example.com" {
+		t.Fatalf("unexpected registered email: got %q", got)
+	}
+	if got, _ := userData["account"].(string); got != "reader" {
+		t.Fatalf("unexpected registered account: got %q", got)
+	}
+
+	storedUser, err := repository.NewUserRepository(db).GetByLogin("reader")
+	if err != nil {
+		t.Fatalf("failed to query registered user: %v", err)
+	}
+	if storedUser.Password == "reader-pass" {
+		t.Fatalf("password should be hashed before storage")
+	}
+	if !security.CheckPassword(storedUser.Password, "reader-pass") {
+		t.Fatalf("stored password hash does not match registered password")
+	}
+}
+
+func TestLoginWithAccountOrEmail(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	_, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("failed to clear users table: %v", err)
+	}
+
+	hashedPassword, err := security.HashPassword("reader-pass")
+	if err != nil {
+		t.Fatalf("failed to hash password: %v", err)
+	}
+
+	if err := repository.NewUserRepository(db).Create(&models.User{
+		Name:     "Reader",
+		Email:    "reader@example.com",
+		Account:  "reader",
+		Nickname: "bookworm",
+		Password: hashedPassword,
+	}); err != nil {
+		t.Fatalf("failed to seed user: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	router.RegisterRoutes(mux, db)
+
+	testCases := []struct {
+		name string
+		body models.AuthCredentials
+	}{
+		{
+			name: "account",
+			body: models.AuthCredentials{
+				Account:  "reader",
+				Password: "reader-pass",
+			},
+		},
+		{
+			name: "email",
+			body: models.AuthCredentials{
+				Email:    "reader@example.com",
+				Password: "reader-pass",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			body, _ := json.Marshal(tc.body)
+			req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			mux.ServeHTTP(rr, req)
+
+			if rr.Code != http.StatusOK {
+				t.Fatalf("login returned wrong status: got %d want %d body=%s", rr.Code, http.StatusOK, rr.Body.String())
+			}
+
+			var loginResp response.APIResponse
+			if err := json.NewDecoder(rr.Body).Decode(&loginResp); err != nil {
+				t.Fatalf("could not decode login response: %v", err)
+			}
+
+			data, ok := loginResp.Data.(map[string]interface{})
+			if !ok {
+				t.Fatalf("unexpected login response data shape: %#v", loginResp.Data)
+			}
+
+			if token, _ := data["token"].(string); token == "" {
+				t.Fatalf("login response did not include a token: %#v", data)
+			}
+		})
+	}
 }
 
 func loginAsOwner(t *testing.T, mux *http.ServeMux) string {
 	t.Helper()
 
-	loginCreds := models.User{
+	loginCreds := models.AuthCredentials{
 		Account:  os.Getenv("OWNER_ACCOUNT"),
 		Password: os.Getenv("OWNER_PASSWORD"),
 	}

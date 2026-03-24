@@ -19,7 +19,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 // GetAll 返回所有用户
 func (r *UserRepository) GetAll() ([]models.User, error) {
 	rows, err := r.db.Query(`
-		SELECT id, name, COALESCE(account, email), COALESCE(nickname, ''), COALESCE(DATE_FORMAT(birthday, '%Y-%m-%d'), '')
+		SELECT id, name, COALESCE(email, ''), COALESCE(account, email), COALESCE(nickname, ''), COALESCE(DATE_FORMAT(birthday, '%Y-%m-%d'), ''), COALESCE(github_id, 0), COALESCE(avatar_url, ''), COALESCE(github_url, '')
 		FROM users
 		ORDER BY id ASC
 	`)
@@ -31,7 +31,7 @@ func (r *UserRepository) GetAll() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Name, &u.Account, &u.Nickname, &u.Birthday); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Account, &u.Nickname, &u.Birthday, &u.GitHubID, &u.AvatarURL, &u.GitHubURL); err != nil {
 			return nil, err
 		}
 		users = append(users, u)
@@ -43,12 +43,12 @@ func (r *UserRepository) GetAll() ([]models.User, error) {
 func (r *UserRepository) GetByLogin(login string) (*models.User, error) {
 	var user models.User
 	err := r.db.QueryRow(`
-		SELECT id, name, COALESCE(account, email), COALESCE(nickname, ''), COALESCE(DATE_FORMAT(birthday, '%Y-%m-%d'), ''), COALESCE(password, '')
+		SELECT id, name, COALESCE(email, ''), COALESCE(account, email), COALESCE(nickname, ''), COALESCE(DATE_FORMAT(birthday, '%Y-%m-%d'), ''), COALESCE(password, ''), COALESCE(github_id, 0), COALESCE(avatar_url, ''), COALESCE(github_url, '')
 		FROM users
 		WHERE email = ? OR account = ?
 		LIMIT 1
 	`, login, login).
-		Scan(&user.ID, &user.Name, &user.Account, &user.Nickname, &user.Birthday, &user.Password)
+		Scan(&user.ID, &user.Name, &user.Email, &user.Account, &user.Nickname, &user.Birthday, &user.Password, &user.GitHubID, &user.AvatarURL, &user.GitHubURL)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,22 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 
 // Create 创建新用户
 func (r *UserRepository) Create(u *models.User) error {
+	email := strings.ToLower(strings.TrimSpace(u.Email))
 	account := strings.TrimSpace(u.Account)
+	if email == "" && strings.Contains(account, "@") {
+		email = strings.ToLower(account)
+	}
+
+	name := strings.TrimSpace(u.Name)
+	if name == "" {
+		name = account
+	}
+
+	nickname := strings.TrimSpace(u.Nickname)
+	if nickname == "" {
+		nickname = name
+	}
+
 	var birthday interface{}
 	if strings.TrimSpace(u.Birthday) != "" {
 		birthday = u.Birthday
@@ -70,9 +85,39 @@ func (r *UserRepository) Create(u *models.User) error {
 
 	_, err := r.db.Exec(
 		"INSERT INTO users(name, email, account, password, nickname, birthday) VALUES(?, ?, ?, ?, ?, ?)",
-		u.Name, account, account, u.Password, u.Nickname, birthday,
+		name, email, account, u.Password, nickname, birthday,
 	)
 	return err
+}
+
+// ExistsByEmail returns true when a user already exists with the given email.
+func (r *UserRepository) ExistsByEmail(email string) (bool, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
+		return false, nil
+	}
+
+	return r.existsByField("email", email)
+}
+
+// ExistsByAccount returns true when a user already exists with the given account name.
+func (r *UserRepository) ExistsByAccount(account string) (bool, error) {
+	account = strings.TrimSpace(account)
+	if account == "" {
+		return false, nil
+	}
+
+	return r.existsByField("account", account)
+}
+
+func (r *UserRepository) existsByField(field, value string) (bool, error) {
+	var count int
+	query := "SELECT COUNT(*) FROM users WHERE " + field + " = ?"
+	if err := r.db.QueryRow(query, value).Scan(&count); err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 // GetByGitHubID 根据 GitHub ID 查找用户
@@ -80,9 +125,9 @@ func (r *UserRepository) GetByGitHubID(githubID int64) (*models.User, error) {
 	var user models.User
 	var avatarURL, githubURL sql.NullString
 	err := r.db.QueryRow(
-		"SELECT id, name, email, nickname, COALESCE(birthday, ''), COALESCE(github_id, 0), COALESCE(avatar_url, ''), COALESCE(github_url, '') FROM users WHERE github_id = ?",
+		"SELECT id, name, COALESCE(email, ''), COALESCE(account, email), COALESCE(nickname, ''), COALESCE(birthday, ''), COALESCE(github_id, 0), COALESCE(avatar_url, ''), COALESCE(github_url, '') FROM users WHERE github_id = ?",
 		githubID,
-	).Scan(&user.ID, &user.Name, &user.Account, &user.Nickname, &user.Birthday, &user.GitHubID, &avatarURL, &githubURL)
+	).Scan(&user.ID, &user.Name, &user.Email, &user.Account, &user.Nickname, &user.Birthday, &user.GitHubID, &avatarURL, &githubURL)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +186,7 @@ func (r *UserRepository) FindOrCreateByGitHub(githubUser *models.GitHubUser) (*m
 	return &models.User{
 		ID:        int(id),
 		Name:      name,
+		Email:     email,
 		Account:   email,
 		Nickname:  githubUser.Login,
 		GitHubID:  githubUser.ID,

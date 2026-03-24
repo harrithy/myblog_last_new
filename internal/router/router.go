@@ -105,6 +105,10 @@ func registerDualRoutes(
 	aiHandler *handler.AIHandler,
 ) {
 	for _, prefix := range []string{"", "/api"} {
+		router.HandleMethods(prefix+"/register", routeHandlers{
+			http.MethodPost: authHandler.Register,
+		})
+
 		router.HandleMethods(prefix+"/login", routeHandlers{
 			http.MethodPost: authHandler.Login,
 		})

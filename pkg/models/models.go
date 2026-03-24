@@ -4,6 +4,7 @@ package models
 type User struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
+	Email     string `json:"email,omitempty"`
 	Account   string `json:"account"`
 	Nickname  string `json:"nickname"`
 	Birthday  string `json:"birthday"`
@@ -11,6 +12,30 @@ type User struct {
 	GitHubID  int64  `json:"github_id,omitempty"`  // GitHub 用户 ID
 	AvatarURL string `json:"avatar_url,omitempty"` // GitHub 头像 URL
 	GitHubURL string `json:"github_url,omitempty"` // GitHub 主页 URL
+}
+
+// AuthCredentials defines the request body for password login.
+type AuthCredentials struct {
+	Account  string `json:"account,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password"`
+}
+
+// RegisterRequest defines the request body for public registration.
+type RegisterRequest struct {
+	Name     string `json:"name,omitempty"`
+	Email    string `json:"email"`
+	Account  string `json:"account"`
+	Nickname string `json:"nickname,omitempty"`
+	Birthday string `json:"birthday,omitempty"`
+	Password string `json:"password"`
+}
+
+// AuthResponse defines the response body for login and register actions.
+type AuthResponse struct {
+	Token   string `json:"token"`
+	User    User   `json:"user"`
+	IsOwner bool   `json:"is_owner,omitempty"`
 }
 
 // GitHubUser defines GitHub user info from OAuth

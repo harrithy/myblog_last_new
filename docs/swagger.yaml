@@ -69,6 +69,24 @@ definitions:
       watchers_count:
         type: integer
     type: object
+  models.AuthCredentials:
+    properties:
+      account:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  models.AuthResponse:
+    properties:
+      is_owner:
+        type: boolean
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
   models.Blog:
     properties:
       category_id:
@@ -173,6 +191,21 @@ definitions:
     - content
     - entry_time
     type: object
+  models.RegisterRequest:
+    properties:
+      account:
+        type: string
+      birthday:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      nickname:
+        type: string
+      password:
+        type: string
+    type: object
   models.User:
     properties:
       account:
@@ -181,6 +214,8 @@ definitions:
         description: GitHub 头像 URL
         type: string
       birthday:
+        type: string
+      email:
         type: string
       github_id:
         description: GitHub 用户 ID
@@ -343,7 +378,7 @@ paths:
       - auth
   /auth/verify:
     get:
-      description: 验证 JWT Token 是否有效，返回当前用户信息
+      description: 验证 JWT Token 是否有效，并返回当前用户信息
       parameters:
       - description: Bearer Token
         in: header
@@ -354,7 +389,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Token 有效，返回用户信息
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/response.APIResponse'
@@ -363,10 +398,10 @@ paths:
                   type: object
               type: object
         "401":
-          description: Token 无效或已过期
+          description: Unauthorized
           schema:
             $ref: '#/definitions/response.APIResponse'
-      summary: 验证 Token 有效性
+      summary: 验证 Token
       tags:
       - auth
   /blogs:
@@ -789,29 +824,27 @@ paths:
     post:
       consumes:
       - application/json
-      description: 验证用户身份并返回一个 JWT 令牌
+      description: 使用用户名或邮箱和密码登录，返回 JWT 令牌和用户信息
       parameters:
-      - description: 用户凭证
+      - description: 登录凭证
         in: body
         name: credentials
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.AuthCredentials'
       produces:
       - application/json
       responses:
         "200":
-          description: '{"token": "..."}'
+          description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.AuthResponse'
         "400":
           description: 无效的请求体
           schema:
             type: string
         "401":
-          description: 未找到用户
+          description: 账号或密码错误
           schema:
             type: string
       summary: 用户登录
@@ -873,6 +906,36 @@ paths:
       summary: Get owner visit stats
       tags:
       - owner
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: 使用邮箱、用户名和密码注册，注册成功后直接返回 JWT 令牌
+      parameters:
+      - description: 注册信息
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AuthResponse'
+        "400":
+          description: 无效的请求体
+          schema:
+            type: string
+        "409":
+          description: 邮箱或用户名已存在
+          schema:
+            type: string
+      summary: 用户注册
+      tags:
+      - auth
   /upload:
     post:
       consumes:
