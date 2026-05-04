@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const defaultVisitContent = "standard visit record"
+
 // VisitHandler handles visit-related requests.
 type VisitHandler struct {
 	visitRepo *repository.VisitRepository
@@ -28,7 +30,7 @@ func NewVisitHandler(visitRepo *repository.VisitRepository, guestRepo *repositor
 
 // LogVisit godoc
 // @Summary Create visit log
-// @Description Record a user visit.
+// @Description Records a user visit.
 // @Tags visits
 // @Accept json
 // @Produce json
@@ -48,7 +50,7 @@ func (h *VisitHandler) LogVisit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if visit.Content == "" {
-		visit.Content = "普通访问记录"
+		visit.Content = defaultVisitContent
 	}
 
 	id, err := h.visitRepo.Create(&visit)
@@ -69,7 +71,7 @@ func (h *VisitHandler) LogVisit(w http.ResponseWriter, r *http.Request) {
 
 // GetVisitLogs godoc
 // @Summary List visit logs
-// @Description Get paginated visit logs.
+// @Description Returns paginated visit logs.
 // @Tags visits
 // @Produce json
 // @Success 200 {object} response.APIResponse{data=[]models.VisitLog}
@@ -96,7 +98,7 @@ func (h *VisitHandler) GetVisitLogs(w http.ResponseWriter, r *http.Request) {
 
 // LogGuestRecord godoc
 // @Summary Create guest record
-// @Description Record a guest entry event.
+// @Description Records a guest entry event.
 // @Tags guest
 // @Accept json
 // @Produce json
@@ -136,11 +138,11 @@ func (h *VisitHandler) LogGuestRecord(w http.ResponseWriter, r *http.Request) {
 
 // GetOwnerVisitStats godoc
 // @Summary Get owner visit stats
-// @Description Get visit stats for the owner over the last N days.
+// @Description Returns visit stats for the owner over the last N days.
 // @Tags owner
 // @Produce json
 // @Param days query int false "Number of days, default 7"
-// @Param Authorization header string true "Bearer Token"
+// @Param Authorization header string true "Bearer token"
 // @Success 200 {object} response.APIResponse{data=object}
 // @Security ApiKeyAuth
 // @Router /owner/visits [get]
@@ -165,10 +167,10 @@ func (h *VisitHandler) GetOwnerVisitStats(w http.ResponseWriter, r *http.Request
 
 // GetOwnerTodayVisits godoc
 // @Summary Get owner today visits
-// @Description Get today's visit count for the owner.
+// @Description Returns today's visit count for the owner.
 // @Tags owner
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
+// @Param Authorization header string true "Bearer token"
 // @Success 200 {object} response.APIResponse{data=object}
 // @Security ApiKeyAuth
 // @Router /owner/today-visits [get]

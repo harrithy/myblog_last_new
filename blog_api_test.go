@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"myblog_last_new/internal/response"
 	"myblog_last_new/internal/router"
+	"myblog_last_new/pkg/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,8 +20,8 @@ func TestBlogsReadFromArticleCategories(t *testing.T) {
 
 	folderResult, err := db.Exec(`
 		INSERT INTO categories (name, type, sort_order)
-		VALUES (?, 'folder', 1)
-	`, "Go")
+		VALUES (?, ?, 1)
+	`, "Go", models.CategoryTypeFolder)
 	if err != nil {
 		t.Fatalf("failed to create parent category: %v", err)
 	}
@@ -33,8 +34,8 @@ func TestBlogsReadFromArticleCategories(t *testing.T) {
 
 	articleResult, err := db.Exec(`
 		INSERT INTO categories (name, type, description, url, parent_id, sort_order)
-		VALUES (?, 'article', ?, ?, ?, 1)
-	`, "How Go Skills Help", "A short article", "/posts/go-skills", parentID)
+		VALUES (?, ?, ?, ?, ?, 1)
+	`, "How Go Skills Help", models.CategoryTypeArticle, "A short article", "/posts/go-skills", parentID)
 	if err != nil {
 		t.Fatalf("failed to create article category: %v", err)
 	}
@@ -44,11 +45,6 @@ func TestBlogsReadFromArticleCategories(t *testing.T) {
 		t.Fatalf("failed to read article id: %v", err)
 	}
 	articleID := int(articleID64)
-
-	// Keep the legacy blogs table empty to prove the API now reads from categories.
-	if _, err := db.Exec("DELETE FROM blogs"); err != nil {
-		t.Fatalf("failed to clear blogs table: %v", err)
-	}
 
 	mux := http.NewServeMux()
 	router.RegisterRoutes(mux, db)
@@ -120,7 +116,6 @@ func clearContentTables(t *testing.T, db *sql.DB) {
 
 	queries := []string{
 		"DELETE FROM comments",
-		"DELETE FROM blogs",
 		"DELETE FROM categories",
 	}
 

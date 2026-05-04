@@ -11,19 +11,18 @@ import (
 	"myblog_last_new/pkg/models"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 )
 
-// GitHubConfig 存储 GitHub OAuth 配置
+// GitHubConfig stores GitHub OAuth settings.
 type GitHubConfig struct {
 	ClientID     string
 	ClientSecret string
 	RedirectURI  string
 }
 
-// GitHubAuthHandler 处理 GitHub OAuth 认证
+// GitHubAuthHandler handles GitHub OAuth requests.
 type GitHubAuthHandler struct {
 	userRepo  *repository.UserRepository
 	ownerRepo *repository.OwnerVisitRepository
@@ -31,37 +30,29 @@ type GitHubAuthHandler struct {
 	owner     config.OwnerSettings
 }
 
-// NewGitHubAuthHandler 创建新的 GitHubAuthHandler
-// 需要设置环境变量: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_REDIRECT_URI
+// NewGitHubAuthHandler creates a new GitHubAuthHandler.
 func NewGitHubAuthHandler(userRepo *repository.UserRepository, ownerRepo *repository.OwnerVisitRepository) *GitHubAuthHandler {
 	return &GitHubAuthHandler{
 		userRepo:  userRepo,
 		ownerRepo: ownerRepo,
 		owner:     config.LoadOwnerSettings(),
 		config: GitHubConfig{
-			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
-			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
-			RedirectURI:  getEnvOrDefault("GITHUB_REDIRECT_URI", "http://localhost:5173/callback"),
+			ClientID:     config.GetEnv("GITHUB_CLIENT_ID", ""),
+			ClientSecret: config.GetEnv("GITHUB_CLIENT_SECRET", ""),
+			RedirectURI:  config.GetEnv("GITHUB_REDIRECT_URI", "http://localhost:5173/callback"),
 		},
 	}
 }
 
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
 // GetGitHubLoginURL godoc
-// @Summary 获取 GitHub 登录 URL
-// @Description 返回 GitHub OAuth 授权页面的 URL
+// @Summary Get GitHub login URL
+// @Description Returns the GitHub OAuth authorization URL.
 // @Tags auth
 // @Produce json
-// @Success 200 {object} map[string]string "{"url": "..."}"
+// @Success 200 {object} map[string]string
 // @Router /auth/github [get]
 func (h *GitHubAuthHandler) GetGitHubLoginURL(w http.ResponseWriter, r *http.Request) {
-	if h.config.ClientID == "" {
+	if strings.TrimSpace(h.config.ClientID) == "" {
 		response.InternalError(w, "GitHub OAuth not configured")
 		return
 	}
@@ -76,80 +67,35 @@ func (h *GitHubAuthHandler) GetGitHubLoginURL(w http.ResponseWriter, r *http.Req
 }
 
 // GitHubCallback godoc
-// @Summary GitHub OAuth 回调
-// @Description 处理 GitHub OAuth 回调，获取用户信息并登录/注册
+// @Summary Handle GitHub OAuth callback
+// @Description Exchanges the GitHub authorization code, loads the GitHub user, and signs the user in.
 // @Tags auth
 // @Produce json
-// @Param code query string true "GitHub 授权码"
-// @Success 200 {object} map[string]interface{} "{"token": "...", "user": {...}}"
-// @Failure 400 {string} string "缺少授权码"
-// @Failure 500 {string} string "获取 token 失败"
+// @Param code query string true "GitHub authorization code"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {string} string "Missing authorization code"
+// @Failure 500 {string} string "GitHub login failed"
 // @Router /auth/github/callback [get]
 func (h *GitHubAuthHandler) GitHubCallback(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
+	code := strings.TrimSpace(r.URL.Query().Get("code"))
 	if code == "" {
 		response.BadRequest(w, "Missing authorization code")
 		return
 	}
 
-	// 用授权码换取 access token
-	accessToken, err := h.exchangeCodeForToken(code)
-	if err != nil {
-		response.InternalError(w, "Failed to exchange code for token: "+err.Error())
-		return
-	}
-
-	// 获取 GitHub 用户信息
-	githubUser, err := h.getGitHubUser(accessToken)
-	if err != nil {
-		response.InternalError(w, "Failed to get GitHub user info: "+err.Error())
-		return
-	}
-
-	// 查找或创建用户
-	user, err := h.userRepo.FindOrCreateByGitHub(githubUser)
-	if err != nil {
-		response.InternalError(w, "Failed to find or create user: "+err.Error())
-		return
-	}
-
-	// 检查是否是博主登录，记录访问统计
-	isOwner := h.owner.GitHubID > 0 && githubUser.ID == h.owner.GitHubID
-	if isOwner {
-		go func() {
-			if err := h.ownerRepo.RecordVisit(); err != nil {
-				fmt.Printf("Failed to record owner visit: %v\n", err)
-			}
-		}()
-	}
-
-	// 生成 JWT token
-	tokenString, err := middleware.GenerateJWT(user.Account, isOwner)
-	if err != nil {
-		response.InternalError(w, "Failed to generate token")
-		return
-	}
-
-	responseData := map[string]interface{}{
-		"token": tokenString,
-		"user":  user,
-	}
-	if isOwner {
-		responseData["is_owner"] = true
-	}
-	response.Success(w, responseData)
+	h.loginWithGitHubCode(w, code)
 }
 
 // GitHubCallbackWithCode godoc
-// @Summary 使用授权码进行 GitHub 登录
-// @Description 前端传递 GitHub 授权码，后端处理登录/注册
+// @Summary Sign in with a GitHub code
+// @Description Accepts a GitHub authorization code from the frontend and completes the login flow.
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param body body object true "包含 code 的请求体"
-// @Success 200 {object} map[string]interface{} "{"token": "...", "user": {...}}"
-// @Failure 400 {string} string "无效的请求体"
-// @Failure 500 {string} string "获取 token 失败"
+// @Param body body object true "JSON payload containing a GitHub authorization code"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 500 {string} string "GitHub login failed"
 // @Router /auth/github/login [post]
 func (h *GitHubAuthHandler) GitHubCallbackWithCode(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -160,34 +106,35 @@ func (h *GitHubAuthHandler) GitHubCallbackWithCode(w http.ResponseWriter, r *htt
 		return
 	}
 
-	if req.Code == "" {
+	code := strings.TrimSpace(req.Code)
+	if code == "" {
 		response.BadRequest(w, "Missing authorization code")
 		return
 	}
 
-	// 用授权码换取 access token
-	accessToken, err := h.exchangeCodeForToken(req.Code)
+	h.loginWithGitHubCode(w, code)
+}
+
+func (h *GitHubAuthHandler) loginWithGitHubCode(w http.ResponseWriter, code string) {
+	accessToken, err := h.exchangeCodeForToken(code)
 	if err != nil {
 		response.InternalError(w, "Failed to exchange code for token: "+err.Error())
 		return
 	}
 
-	// 获取 GitHub 用户信息
 	githubUser, err := h.getGitHubUser(accessToken)
 	if err != nil {
 		response.InternalError(w, "Failed to get GitHub user info: "+err.Error())
 		return
 	}
 
-	// 查找或创建用户
 	user, err := h.userRepo.FindOrCreateByGitHub(githubUser)
 	if err != nil {
 		response.InternalError(w, "Failed to find or create user: "+err.Error())
 		return
 	}
 
-	// 检查是否是博主登录，记录访问统计
-	isOwner := h.owner.GitHubID > 0 && githubUser.ID == h.owner.GitHubID
+	isOwner := h.isOwnerGitHubUser(githubUser)
 	if isOwner {
 		go func() {
 			if err := h.ownerRepo.RecordVisit(); err != nil {
@@ -196,7 +143,6 @@ func (h *GitHubAuthHandler) GitHubCallbackWithCode(w http.ResponseWriter, r *htt
 		}()
 	}
 
-	// 生成 JWT token
 	tokenString, err := middleware.GenerateJWT(user.Account, isOwner)
 	if err != nil {
 		response.InternalError(w, "Failed to generate token")
@@ -210,10 +156,15 @@ func (h *GitHubAuthHandler) GitHubCallbackWithCode(w http.ResponseWriter, r *htt
 	if isOwner {
 		responseData["is_owner"] = true
 	}
+
 	response.Success(w, responseData)
 }
 
-// exchangeCodeForToken 用授权码换取 access token
+func (h *GitHubAuthHandler) isOwnerGitHubUser(user *models.GitHubUser) bool {
+	return h.owner.GitHubID > 0 && user != nil && user.ID == h.owner.GitHubID
+}
+
+// exchangeCodeForToken exchanges an authorization code for an access token.
 func (h *GitHubAuthHandler) exchangeCodeForToken(code string) (string, error) {
 	data := url.Values{}
 	data.Set("client_id", h.config.ClientID)
@@ -221,7 +172,7 @@ func (h *GitHubAuthHandler) exchangeCodeForToken(code string) (string, error) {
 	data.Set("code", code)
 	data.Set("redirect_uri", h.config.RedirectURI)
 
-	req, err := http.NewRequest("POST", "https://github.com/login/oauth/access_token", strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(http.MethodPost, "https://github.com/login/oauth/access_token", strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", err
 	}
@@ -231,7 +182,7 @@ func (h *GitHubAuthHandler) exchangeCodeForToken(code string) (string, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("request failed: %v", err)
+		return "", fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -242,8 +193,6 @@ func (h *GitHubAuthHandler) exchangeCodeForToken(code string) (string, error) {
 
 	var tokenResp struct {
 		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-		Scope       string `json:"scope"`
 		Error       string `json:"error"`
 		ErrorDesc   string `json:"error_description"`
 	}
@@ -268,9 +217,9 @@ func (h *GitHubAuthHandler) exchangeCodeForToken(code string) (string, error) {
 	return tokenResp.AccessToken, nil
 }
 
-// getGitHubUser 获取 GitHub 用户信息
+// getGitHubUser fetches GitHub user info by access token.
 func (h *GitHubAuthHandler) getGitHubUser(accessToken string) (*models.GitHubUser, error) {
-	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
+	req, err := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +253,7 @@ func (h *GitHubAuthHandler) getGitHubUser(accessToken string) (*models.GitHubUse
 	return &user, nil
 }
 
-// GitHubRepo GitHub 仓库信息
+// GitHubRepo defines repository data returned from GitHub.
 type GitHubRepo struct {
 	ID          int64    `json:"id"`
 	Name        string   `json:"name"`
@@ -326,12 +275,12 @@ type GitHubRepo struct {
 }
 
 // GetOwnerRepos godoc
-// @Summary 获取博主的 GitHub 开源项目
-// @Description 获取博主 GitHub 账号下的所有公开仓库
+// @Summary List the owner's public GitHub repositories
+// @Description Returns public, non-fork repositories owned by the configured GitHub account.
 // @Tags github
 // @Produce json
-// @Param sort query string false "排序方式: created, updated, pushed, full_name" default(updated)
-// @Param per_page query int false "每页数量" default(30)
+// @Param sort query string false "Sort mode: created, updated, pushed, full_name" default(updated)
+// @Param per_page query int false "Page size" default(30)
 // @Success 200 {object} response.APIResponse{data=[]GitHubRepo}
 // @Router /github/repos [get]
 func (h *GitHubAuthHandler) GetOwnerRepos(w http.ResponseWriter, r *http.Request) {
@@ -355,7 +304,7 @@ func (h *GitHubAuthHandler) GetOwnerRepos(w http.ResponseWriter, r *http.Request
 		h.owner.GitHubUsername, sort, perPage,
 	)
 
-	req, err := http.NewRequest("GET", apiURL, nil)
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
 		response.InternalError(w, "Failed to create request: "+err.Error())
 		return
@@ -388,8 +337,7 @@ func (h *GitHubAuthHandler) GetOwnerRepos(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// 过滤掉 fork 的仓库，只返回原创项目
-	var originalRepos []GitHubRepo
+	originalRepos := make([]GitHubRepo, 0, len(repos))
 	for _, repo := range repos {
 		if !repo.Fork && !repo.Private {
 			originalRepos = append(originalRepos, repo)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"myblog_last_new/internal/config"
 	"myblog_last_new/internal/response"
 	"net/http"
 	"os"
@@ -67,8 +68,8 @@ type deepSeekChatResponse struct {
 func NewAIHandler() *AIHandler {
 	return &AIHandler{
 		apiKey:       strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
-		baseURL:      strings.TrimRight(getEnvOrDefault("DEEPSEEK_BASE_URL", defaultDeepSeekBaseURL), "/"),
-		defaultModel: strings.TrimSpace(getEnvOrDefault("DEEPSEEK_MODEL", defaultDeepSeekModel)),
+		baseURL:      strings.TrimRight(config.GetEnv("DEEPSEEK_BASE_URL", defaultDeepSeekBaseURL), "/"),
+		defaultModel: strings.TrimSpace(config.GetEnv("DEEPSEEK_MODEL", defaultDeepSeekModel)),
 		httpClient: &http.Client{
 			Timeout: 60 * time.Second,
 		},

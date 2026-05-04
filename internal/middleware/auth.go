@@ -16,14 +16,14 @@ var (
 	errInvalidToken = errors.New("invalid token")
 )
 
-// Claims 表示 JWT 声明
+// Claims defines the JWT claims used by this application.
 type Claims struct {
 	Username string `json:"username"`
 	IsOwner  bool   `json:"is_owner"`
 	jwt.RegisteredClaims
 }
 
-// GenerateJWT 为指定用户名生成 JWT 令牌
+// GenerateJWT generates a JWT for the given username.
 func GenerateJWT(username string, isOwner bool) (string, error) {
 	now := time.Now()
 	midnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
@@ -73,7 +73,7 @@ func ParseRequestToken(r *http.Request) (*Claims, error) {
 	return ParseToken(tokenStr)
 }
 
-// Auth 是验证 JWT 令牌的中间件
+// Auth ensures that a request contains a valid JWT.
 func Auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if _, err := ParseRequestToken(r); err != nil {

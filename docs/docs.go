@@ -68,17 +68,17 @@ const docTemplate = `{
         },
         "/auth/github": {
             "get": {
-                "description": "返回 GitHub OAuth 授权页面的 URL",
+                "description": "Returns the GitHub OAuth authorization URL.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "获取 GitHub 登录 URL",
+                "summary": "Get GitHub login URL",
                 "responses": {
                     "200": {
-                        "description": "{\"url\": \"...\"}",
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -91,18 +91,18 @@ const docTemplate = `{
         },
         "/auth/github/callback": {
             "get": {
-                "description": "处理 GitHub OAuth 回调，获取用户信息并登录/注册",
+                "description": "Exchanges the GitHub authorization code, loads the GitHub user, and signs the user in.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "GitHub OAuth 回调",
+                "summary": "Handle GitHub OAuth callback",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "GitHub 授权码",
+                        "description": "GitHub authorization code",
                         "name": "code",
                         "in": "query",
                         "required": true
@@ -110,20 +110,20 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "{\"token\": \"...\", \"user\": {...}}",
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "缺少授权码",
+                        "description": "Missing authorization code",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "获取 token 失败",
+                        "description": "GitHub login failed",
                         "schema": {
                             "type": "string"
                         }
@@ -133,7 +133,7 @@ const docTemplate = `{
         },
         "/auth/github/login": {
             "post": {
-                "description": "前端传递 GitHub 授权码，后端处理登录/注册",
+                "description": "Accepts a GitHub authorization code from the frontend and completes the login flow.",
                 "consumes": [
                     "application/json"
                 ],
@@ -143,10 +143,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "使用授权码进行 GitHub 登录",
+                "summary": "Sign in with a GitHub code",
                 "parameters": [
                     {
-                        "description": "包含 code 的请求体",
+                        "description": "JSON payload containing a GitHub authorization code",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -157,20 +157,20 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "{\"token\": \"...\", \"user\": {...}}",
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "无效的请求体",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "获取 token 失败",
+                        "description": "GitHub login failed",
                         "schema": {
                             "type": "string"
                         }
@@ -180,18 +180,18 @@ const docTemplate = `{
         },
         "/auth/verify": {
             "get": {
-                "description": "验证 JWT Token 是否有效，并返回当前用户信息",
+                "description": "Validates the JWT token and returns the current authenticated user information.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "验证 Token",
+                "summary": "Verify a JWT token",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer token",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -227,36 +227,36 @@ const docTemplate = `{
         },
         "/blogs": {
             "get": {
-                "description": "根据分类ID分页获取博客列表，支持关键词搜索。",
+                "description": "Returns paginated article nodes from categories(type=article), with optional parent category and keyword filters.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "blogs"
                 ],
-                "summary": "获取博客列表",
+                "summary": "List article-backed blogs",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "分类ID",
+                        "description": "Parent category ID used to filter article nodes",
                         "name": "category_id",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "搜索关键词",
+                        "description": "Keyword matched against article titles",
                         "name": "keyword",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "页码，默认1",
+                        "description": "Page number, default 1",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "每页数量，默认10",
+                        "description": "Page size, default 10",
                         "name": "pagesize",
                         "in": "query"
                     }
@@ -284,7 +284,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "查询失败",
+                        "description": "Query failed",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -294,18 +294,18 @@ const docTemplate = `{
         },
         "/blogs/{id}": {
             "get": {
-                "description": "根据ID获取单个博客的详细信息。",
+                "description": "Returns a single article node from categories(type=article) while preserving the blog response shape.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "blogs"
                 ],
-                "summary": "获取博客详情",
+                "summary": "Get article-backed blog detail",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "博客ID",
+                        "description": "Article node ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -331,19 +331,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "Invalid ID",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "404": {
-                        "description": "博客不存在",
+                        "description": "Blog not found",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "查询失败",
+                        "description": "Query failed",
                         "schema": {
                             "$ref": "#/definitions/response.APIResponse"
                         }
@@ -811,26 +811,26 @@ const docTemplate = `{
         },
         "/github/repos": {
             "get": {
-                "description": "获取博主 GitHub 账号下的所有公开仓库",
+                "description": "Returns public, non-fork repositories owned by the configured GitHub account.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "github"
                 ],
-                "summary": "获取博主的 GitHub 开源项目",
+                "summary": "List the owner's public GitHub repositories",
                 "parameters": [
                     {
                         "type": "string",
                         "default": "updated",
-                        "description": "排序方式: created, updated, pushed, full_name",
+                        "description": "Sort mode: created, updated, pushed, full_name",
                         "name": "sort",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 30,
-                        "description": "每页数量",
+                        "description": "Page size",
                         "name": "per_page",
                         "in": "query"
                     }
@@ -862,7 +862,7 @@ const docTemplate = `{
         },
         "/guest": {
             "post": {
-                "description": "Record a guest entry event.",
+                "description": "Records a guest entry event.",
                 "consumes": [
                     "application/json"
                 ],
@@ -908,7 +908,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "使用用户名或邮箱和密码登录，返回 JWT 令牌和用户信息",
+                "description": "Validates account or email credentials and returns a JWT plus user information.",
                 "consumes": [
                     "application/json"
                 ],
@@ -918,10 +918,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "用户登录",
+                "summary": "Login with account or email",
                 "parameters": [
                     {
-                        "description": "登录凭证",
+                        "description": "Login credentials",
                         "name": "credentials",
                         "in": "body",
                         "required": true,
@@ -938,13 +938,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "无效的请求体",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
-                        "description": "账号或密码错误",
+                        "description": "Invalid credentials",
                         "schema": {
                             "type": "string"
                         }
@@ -959,7 +959,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get today's visit count for the owner.",
+                "description": "Returns today's visit count for the owner.",
                 "produces": [
                     "application/json"
                 ],
@@ -970,7 +970,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer token",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -1005,7 +1005,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get visit stats for the owner over the last N days.",
+                "description": "Returns visit stats for the owner over the last N days.",
                 "produces": [
                     "application/json"
                 ],
@@ -1022,7 +1022,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer token",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -1052,7 +1052,7 @@ const docTemplate = `{
         },
         "/register": {
             "post": {
-                "description": "使用邮箱、用户名和密码注册，注册成功后直接返回 JWT 令牌",
+                "description": "Creates a new public user account and immediately returns a JWT for the new user.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1062,10 +1062,10 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "用户注册",
+                "summary": "Register a public user",
                 "parameters": [
                     {
-                        "description": "注册信息",
+                        "description": "Registration payload",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -1082,13 +1082,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "无效的请求体",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "409": {
-                        "description": "邮箱或用户名已存在",
+                        "description": "Email or account already exists",
                         "schema": {
                             "type": "string"
                         }
@@ -1150,14 +1150,14 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
-                "description": "获取所有已注册用户的列表。",
+                "description": "Returns all registered users.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "users"
                 ],
-                "summary": "获取所有用户",
+                "summary": "List users",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1169,7 +1169,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "查询失败或数据解析失败",
+                        "description": "Query failed",
                         "schema": {
                             "type": "string"
                         }
@@ -1182,7 +1182,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "在系统中创建一个新用户。此操作需要身份验证。",
+                "description": "Creates a new user record. This endpoint requires owner authentication.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1192,10 +1192,10 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "添加一个新用户",
+                "summary": "Add a user",
                 "parameters": [
                     {
-                        "description": "要添加的用户",
+                        "description": "User payload",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -1212,13 +1212,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "无效的请求体",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "准备或执行语句失败",
+                        "description": "Create failed",
                         "schema": {
                             "type": "string"
                         }
@@ -1228,7 +1228,7 @@ const docTemplate = `{
         },
         "/visits": {
             "get": {
-                "description": "Get paginated visit logs.",
+                "description": "Returns paginated visit logs.",
                 "produces": [
                     "application/json"
                 ],
@@ -1261,7 +1261,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Record a user visit.",
+                "description": "Records a user visit.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1445,7 +1445,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "category_name": {
-                    "description": "查询时填充",
+                    "description": "Parent category name, populated on reads.",
                     "type": "string"
                 },
                 "created_at": {
@@ -1472,7 +1472,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "children": {
-                    "description": "子分类列表，查询时填充",
+                    "description": "Nested child categories, populated on reads.",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.Category"
@@ -1482,42 +1482,42 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.CustomTime"
                 },
                 "description": {
-                    "description": "分类描述",
+                    "description": "Optional summary text.",
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "img_url": {
-                    "description": "分类封面图片URL",
+                    "description": "Cover image URL.",
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
                 "parent_id": {
-                    "description": "nil表示顶级分类",
+                    "description": "Nil means a top-level category.",
                     "type": "integer"
                 },
                 "sort_order": {
                     "type": "integer"
                 },
                 "tags": {
-                    "description": "分类标签",
+                    "description": "Optional tag list.",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "type": {
-                    "description": "folder=文件夹, article=文章",
+                    "description": "folder for navigation, article for content nodes.",
                     "type": "string"
                 },
                 "updated_at": {
                     "$ref": "#/definitions/models.CustomTime"
                 },
                 "url": {
-                    "description": "文章类型时存储文章地址",
+                    "description": "Article URL when Type is article.",
                     "type": "string"
                 }
             }
@@ -1526,32 +1526,32 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "article_id": {
-                    "description": "文章ID",
+                    "description": "Article node ID.",
                     "type": "integer",
                     "example": 11
                 },
                 "avatar_url": {
-                    "description": "评论者头像（可选）",
+                    "description": "Optional avatar URL.",
                     "type": "string",
                     "example": "https://example.com/avatar.jpg"
                 },
                 "content": {
-                    "description": "评论内容",
+                    "description": "Comment body.",
                     "type": "string",
-                    "example": "写得很好！"
+                    "example": "Great article!"
                 },
                 "email": {
-                    "description": "评论者邮箱（可选）",
+                    "description": "Optional contact email.",
                     "type": "string",
-                    "example": "zhangsan@example.com"
+                    "example": "alex@example.com"
                 },
                 "nickname": {
-                    "description": "评论者昵称",
+                    "description": "Comment author nickname.",
                     "type": "string",
-                    "example": "张三"
+                    "example": "Alex"
                 },
                 "parent_id": {
-                    "description": "父评论ID（可选）",
+                    "description": "Optional parent comment ID.",
                     "type": "integer",
                     "example": 101
                 }
@@ -1616,7 +1616,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "avatar_url": {
-                    "description": "GitHub 头像 URL",
+                    "description": "GitHub avatar URL.",
                     "type": "string"
                 },
                 "birthday": {
@@ -1626,11 +1626,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "github_id": {
-                    "description": "GitHub 用户 ID",
+                    "description": "GitHub user ID.",
                     "type": "integer"
                 },
                 "github_url": {
-                    "description": "GitHub 主页 URL",
+                    "description": "GitHub profile URL.",
                     "type": "string"
                 },
                 "id": {

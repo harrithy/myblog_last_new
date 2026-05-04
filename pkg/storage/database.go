@@ -121,22 +121,6 @@ func InitDB(db *sql.DB) error {
 	}
 
 	if _, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS blogs (
-			id INT AUTO_INCREMENT PRIMARY KEY,
-			title VARCHAR(255) NOT NULL,
-			url VARCHAR(500) NOT NULL UNIQUE,
-			category_id INT NOT NULL,
-			description TEXT,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-			INDEX idx_category_id (category_id)
-		);
-	`); err != nil {
-		return err
-	}
-
-	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS comments (
 			id INT AUTO_INCREMENT PRIMARY KEY,
 			article_id INT NOT NULL,
@@ -158,7 +142,7 @@ func InitDB(db *sql.DB) error {
 		return err
 	}
 
-	fmt.Println("数据库表初始化成功!")
+	fmt.Println("Database schema is ready.")
 	return nil
 }
 
@@ -210,7 +194,7 @@ func ConnectDB() (*sql.DB, error) {
 	db.SetConnMaxIdleTime(5 * time.Minute)
 	db.SetConnMaxLifetime(30 * time.Minute)
 
-	fmt.Printf("成功连接到 MySQL 数据库 '%s'!\n", dbName)
+	fmt.Printf("Connected to MySQL database %q.\n", dbName)
 	return db, nil
 }
 

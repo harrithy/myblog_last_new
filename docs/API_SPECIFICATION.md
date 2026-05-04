@@ -152,14 +152,14 @@ Authorization: Bearer <token>
 
 **GET** `/blogs`
 
-根据分类ID分页获取博客列表，支持关键词搜索。
+返回 `categories(type=article)` 下的文章节点列表，并保持博客接口的响应结构。支持按父分类和关键词分页筛选。
 
 **查询参数：**
 
 | 参数 | 类型 | 必传 | 说明 |
 |------|------|------|------|
-| category_id | int | 否 | 分类ID |
-| keyword | string | 否 | 搜索关键词 |
+| category_id | int | 否 | 父分类ID，用于筛选该分类下的文章节点 |
+| keyword | string | 否 | 按文章标题模糊搜索 |
 | page | int | 否 | 页码，默认1 |
 | pagesize | int | 否 | 每页数量，默认10 |
 
@@ -190,13 +190,13 @@ Authorization: Bearer <token>
 
 **GET** `/blogs/{id}`
 
-根据ID获取单个博客的详细信息。
+根据文章节点ID获取单篇博客详情。这里的 `id` 实际上是 `categories(type=article)` 中文章节点的主键。
 
 **路径参数：**
 
 | 参数 | 类型 | 必传 | 说明 |
 |------|------|------|------|
-| id | int | 是 | 博客ID |
+| id | int | 是 | 文章节点ID |
 
 **成功响应：**
 

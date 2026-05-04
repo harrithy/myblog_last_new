@@ -38,10 +38,10 @@ func Run() error {
 
 	port := config.GetEnv("PORT", "8080")
 
-	fmt.Printf("服务器正在端口 %s 启动...\n", port)
-	fmt.Printf("API 文档地址: http://localhost:%s/swagger/index.html\n", port)
-	fmt.Printf("分类管理页面: http://localhost:%s/static/category.html\n", port)
-	fmt.Printf("接口文档页面: http://localhost:%s/static/api.html\n", port)
+	fmt.Printf("Server starting on port %s...\n", port)
+	fmt.Printf("Swagger UI: http://localhost:%s/swagger/index.html\n", port)
+	fmt.Printf("Category admin page: http://localhost:%s/static/category.html\n", port)
+	fmt.Printf("Static API page: http://localhost:%s/static/api.html\n", port)
 
 	server := &http.Server{
 		Addr:              ":" + port,

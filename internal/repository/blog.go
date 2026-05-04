@@ -28,7 +28,8 @@ type BlogFilter struct {
 // GetAll returns paginated article nodes from categories while preserving the blog response shape.
 func (r *BlogRepository) GetAll(filter BlogFilter) ([]models.Blog, int64, error) {
 	queryArgs := make([]interface{}, 0)
-	whereClauses := []string{"c.type = 'article'"}
+	whereClauses := []string{"c.type = ?"}
+	queryArgs = append(queryArgs, models.CategoryTypeArticle)
 
 	if filter.CategoryID != nil {
 		whereClauses = append(whereClauses, "c.parent_id = ?")
@@ -113,9 +114,9 @@ func (r *BlogRepository) GetByID(id int) (*models.Blog, error) {
 			c.updated_at
 		FROM categories c
 		LEFT JOIN categories parent ON c.parent_id = parent.id
-		WHERE c.id = ? AND c.type = 'article'`
+		WHERE c.id = ? AND c.type = ?`
 
-	err := r.db.QueryRow(query, id).Scan(
+	err := r.db.QueryRow(query, id, models.CategoryTypeArticle).Scan(
 		&blog.ID,
 		&blog.Title,
 		&blog.URL,

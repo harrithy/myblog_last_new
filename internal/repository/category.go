@@ -108,7 +108,7 @@ func (r *CategoryRepository) GetAll(filter CategoryFilter) ([]models.Category, i
 		args = append(args, *filter.ParentID)
 	}
 
-	if filter.Type == "folder" || filter.Type == "article" {
+	if models.IsValidCategoryType(filter.Type) {
 		whereClauses += " AND type = ?"
 		args = append(args, filter.Type)
 	}

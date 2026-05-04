@@ -1,11 +1,20 @@
 package middleware
 
-import "net/http"
+import (
+	"myblog_last_new/internal/config"
+	"net/http"
+	"strings"
+)
 
-// CORS 添加跨域请求头到响应
+// CORS adds the configured CORS headers to responses.
 func CORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := strings.TrimSpace(r.Header.Get("Origin"))
+		if allowedOrigin := resolveAllowedOrigin(origin, config.CORSAllowedOrigins()); allowedOrigin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+			w.Header().Add("Vary", "Origin")
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
@@ -16,4 +25,18 @@ func CORS(next http.HandlerFunc) http.HandlerFunc {
 
 		next(w, r)
 	}
+}
+
+func resolveAllowedOrigin(origin string, allowedOrigins []string) string {
+	for _, allowedOrigin := range allowedOrigins {
+		if allowedOrigin == "*" {
+			return "*"
+		}
+
+		if origin != "" && strings.EqualFold(origin, allowedOrigin) {
+			return origin
+		}
+	}
+
+	return ""
 }

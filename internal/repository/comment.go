@@ -88,7 +88,11 @@ func (r *CommentRepository) GetByArticleIDWithPagination(articleID, page, pageSi
 // ArticleExists checks whether the target article exists.
 func (r *CommentRepository) ArticleExists(articleID int) (bool, error) {
 	var exists bool
-	err := r.db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE id = ? AND type = 'article')", articleID).Scan(&exists)
+	err := r.db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM categories WHERE id = ? AND type = ?)",
+		articleID,
+		models.CategoryTypeArticle,
+	).Scan(&exists)
 	return exists, err
 }
 

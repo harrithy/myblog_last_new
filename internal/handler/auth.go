@@ -31,15 +31,15 @@ func NewAuthHandler(userRepo *repository.UserRepository, ownerRepo *repository.O
 }
 
 // Login godoc
-// @Summary 用户登录
-// @Description 使用用户名或邮箱和密码登录，返回 JWT 令牌和用户信息
+// @Summary Login with account or email
+// @Description Validates account or email credentials and returns a JWT plus user information.
 // @Tags auth
 // @Accept  json
 // @Produce  json
-// @Param   credentials   body    models.AuthCredentials   true  "登录凭证"
+// @Param   credentials   body    models.AuthCredentials   true  "Login credentials"
 // @Success 200 {object} models.AuthResponse
-// @Failure 400 {string} string "无效的请求体"
-// @Failure 401 {string} string "账号或密码错误"
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 401 {string} string "Invalid credentials"
 // @Router /login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var creds models.AuthCredentials
@@ -65,12 +65,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			Email:   h.owner.Email,
 			Account: h.owner.Account,
 		}
-
-		go func() {
-			if err := h.ownerRepo.RecordVisit(); err != nil {
-				fmt.Printf("Failed to record owner visit: %v\n", err)
-			}
-		}()
+		h.recordOwnerVisitAsync()
 	} else {
 		storedUser, err := h.userRepo.GetByLogin(login)
 		if err != nil {
@@ -101,15 +96,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Register godoc
-// @Summary 用户注册
-// @Description 使用邮箱、用户名和密码注册，注册成功后直接返回 JWT 令牌
+// @Summary Register a public user
+// @Description Creates a new public user account and immediately returns a JWT for the new user.
 // @Tags auth
 // @Accept  json
 // @Produce  json
-// @Param   user   body    models.RegisterRequest   true  "注册信息"
+// @Param   user   body    models.RegisterRequest   true  "Registration payload"
 // @Success 201 {object} models.AuthResponse
-// @Failure 400 {string} string "无效的请求体"
-// @Failure 409 {string} string "邮箱或用户名已存在"
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 409 {string} string "Email or account already exists"
 // @Router /register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req models.RegisterRequest
@@ -172,24 +167,24 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 // VerifyToken godoc
-// @Summary 验证 Token
-// @Description 验证 JWT Token 是否有效，并返回当前用户信息
+// @Summary Verify a JWT token
+// @Description Validates the JWT token and returns the current authenticated user information.
 // @Tags auth
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
+// @Param Authorization header string true "Bearer token"
 // @Success 200 {object} response.APIResponse{data=object}
 // @Failure 401 {object} response.APIResponse
 // @Router /auth/verify [get]
 func (h *AuthHandler) VerifyToken(w http.ResponseWriter, r *http.Request) {
 	claims, err := middleware.ParseRequestToken(r)
 	if err != nil {
-		response.Unauthorized(w, "Token 无效或已过期")
+		response.Unauthorized(w, "Token is invalid or expired")
 		return
 	}
 
 	isOwner := claims.IsOwner || h.owner.IsOwnerIdentity(claims.Username)
 	if isOwner {
-		go h.ownerRepo.RecordVisit()
+		h.recordOwnerVisitAsync()
 	}
 
 	var userData map[string]interface{}
@@ -205,10 +200,10 @@ func (h *AuthHandler) VerifyToken(w http.ResponseWriter, r *http.Request) {
 		user, err := h.userRepo.GetByLogin(claims.Username)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				response.Unauthorized(w, "用户不存在")
+				response.Unauthorized(w, "User no longer exists")
 				return
 			}
-			response.InternalError(w, "查询用户失败")
+			response.InternalError(w, "Failed to load user")
 			return
 		}
 
@@ -224,6 +219,14 @@ func (h *AuthHandler) VerifyToken(w http.ResponseWriter, r *http.Request) {
 
 	userData["expires_at"] = claims.ExpiresAt.Time
 	response.Success(w, userData)
+}
+
+func (h *AuthHandler) recordOwnerVisitAsync() {
+	go func() {
+		if err := h.ownerRepo.RecordVisit(); err != nil {
+			fmt.Printf("Failed to record owner visit: %v\n", err)
+		}
+	}()
 }
 
 func normalizeLoginIdentifier(creds models.AuthCredentials) string {

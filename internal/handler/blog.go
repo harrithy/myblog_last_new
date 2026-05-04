@@ -9,27 +9,27 @@ import (
 	"strings"
 )
 
-// BlogHandler 处理博客相关请求
+// BlogHandler handles article-backed blog endpoints.
 type BlogHandler struct {
 	repo *repository.BlogRepository
 }
 
-// NewBlogHandler 创建新的 BlogHandler
+// NewBlogHandler creates a new BlogHandler.
 func NewBlogHandler(repo *repository.BlogRepository) *BlogHandler {
 	return &BlogHandler{repo: repo}
 }
 
 // GetBlogs godoc
-// @Summary 获取博客列表
-// @Description 根据分类ID分页获取博客列表，支持关键词搜索。
+// @Summary List article-backed blogs
+// @Description Returns paginated article nodes from categories(type=article), with optional parent category and keyword filters.
 // @Tags blogs
 // @Produce  json
-// @Param   category_id query    int     false  "分类ID"
-// @Param   keyword     query    string  false  "搜索关键词"
-// @Param   page        query    int     false  "页码，默认1"
-// @Param   pagesize    query    int     false  "每页数量，默认10"
+// @Param   category_id query    int     false  "Parent category ID used to filter article nodes"
+// @Param   keyword     query    string  false  "Keyword matched against article titles"
+// @Param   page        query    int     false  "Page number, default 1"
+// @Param   pagesize    query    int     false  "Page size, default 10"
 // @Success 200 {object} response.APIResponse{data=[]models.Blog}
-// @Failure 500 {object} response.APIResponse "查询失败"
+// @Failure 500 {object} response.APIResponse "Query failed"
 // @Router /blogs [get]
 func (h *BlogHandler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
@@ -64,18 +64,18 @@ func (h *BlogHandler) GetBlogs(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetBlogDetail godoc
-// @Summary 获取博客详情
-// @Description 根据ID获取单个博客的详细信息。
+// @Summary Get article-backed blog detail
+// @Description Returns a single article node from categories(type=article) while preserving the blog response shape.
 // @Tags blogs
 // @Produce  json
-// @Param   id   path    int     true  "博客ID"
+// @Param   id   path    int     true  "Article node ID"
 // @Success 200 {object} response.APIResponse{data=models.Blog}
-// @Failure 400 {object} response.APIResponse "参数错误"
-// @Failure 404 {object} response.APIResponse "博客不存在"
-// @Failure 500 {object} response.APIResponse "查询失败"
+// @Failure 400 {object} response.APIResponse "Invalid ID"
+// @Failure 404 {object} response.APIResponse "Blog not found"
+// @Failure 500 {object} response.APIResponse "Query failed"
 // @Router /blogs/{id} [get]
 func (h *BlogHandler) GetBlogDetail(w http.ResponseWriter, r *http.Request) {
-	// 从路径提取 ID（支持 /blogs/{id} 和 /api/blogs/{id}）
+	// Support both /blogs/{id} and /api/blogs/{id}.
 	path := r.URL.Path
 	path = strings.TrimPrefix(path, "/api")
 	idStr := strings.TrimPrefix(path, "/blogs/")

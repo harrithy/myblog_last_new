@@ -46,8 +46,8 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 	}
 
 	if category.Type == "" {
-		category.Type = "folder"
-	} else if category.Type != "folder" && category.Type != "article" {
+		category.Type = models.CategoryTypeFolder
+	} else if !models.IsValidCategoryType(category.Type) {
 		response.BadRequest(w, "Type must be 'folder' or 'article'")
 		return
 	}
@@ -217,7 +217,7 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if category.Type != "" && category.Type != "folder" && category.Type != "article" {
+	if category.Type != "" && !models.IsValidCategoryType(category.Type) {
 		response.BadRequest(w, "Type must be 'folder' or 'article'")
 		return
 	}

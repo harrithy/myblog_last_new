@@ -10,23 +10,23 @@ import (
 	"strings"
 )
 
-// UserHandler 处理用户相关请求
+// UserHandler handles user-related requests.
 type UserHandler struct {
 	repo *repository.UserRepository
 }
 
-// NewUserHandler 创建新的 UserHandler
+// NewUserHandler creates a new UserHandler.
 func NewUserHandler(repo *repository.UserRepository) *UserHandler {
 	return &UserHandler{repo: repo}
 }
 
 // GetUsers godoc
-// @Summary 获取所有用户
-// @Description 获取所有已注册用户的列表。
+// @Summary List users
+// @Description Returns all registered users.
 // @Tags users
 // @Produce  json
 // @Success 200 {array} models.User
-// @Failure 500 {string} string "查询失败或数据解析失败"
+// @Failure 500 {string} string "Query failed"
 // @Router /users [get]
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := h.repo.GetAll()
@@ -39,15 +39,15 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // AddUser godoc
-// @Summary 添加一个新用户
-// @Description 在系统中创建一个新用户。此操作需要身份验证。
+// @Summary Add a user
+// @Description Creates a new user record. This endpoint requires owner authentication.
 // @Tags users
 // @Accept  json
 // @Produce  json
-// @Param   user     body    models.User   true  "要添加的用户"
+// @Param   user     body    models.User   true  "User payload"
 // @Success 201 {object} models.User
-// @Failure 400 {string} string "无效的请求体"
-// @Failure 500 {string} string "准备或执行语句失败"
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 500 {string} string "Create failed"
 // @Security ApiKeyAuth
 // @Router /users [post]
 func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {

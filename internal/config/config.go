@@ -24,9 +24,71 @@ func GetEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
+// GetCSVEnv returns a trimmed CSV environment variable.
+func GetCSVEnv(key string, defaultValues []string) []string {
+	raw := GetEnv(key, "")
+	if raw == "" {
+		return append([]string(nil), defaultValues...)
+	}
+
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if value := strings.TrimSpace(part); value != "" {
+			values = append(values, value)
+		}
+	}
+
+	if len(values) == 0 {
+		return append([]string(nil), defaultValues...)
+	}
+
+	return values
+}
+
+// GetInt64Env returns an int64 environment variable or the default value.
+func GetInt64Env(key string, defaultValue int64) int64 {
+	value := GetEnv(key, "")
+	if value == "" {
+		return defaultValue
+	}
+
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return defaultValue
+	}
+
+	return parsed
+}
+
 // JWTSecret returns the signing secret used for JWT tokens.
 func JWTSecret() string {
 	return GetEnv("JWT_SECRET", "dev-only-jwt-secret-change-me")
+}
+
+// CORSAllowedOrigins returns the configured allowed CORS origins.
+func CORSAllowedOrigins() []string {
+	return GetCSVEnv("CORS_ALLOW_ORIGINS", []string{"*"})
+}
+
+// UploadProxyURL returns the remote upload endpoint used by the proxy.
+func UploadProxyURL() string {
+	return GetEnv("IMAGE_HOST_URL", "https://image.harrio.xyz/upload")
+}
+
+// UploadMaxBytes returns the maximum accepted upload payload size.
+func UploadMaxBytes() int64 {
+	return GetInt64Env("UPLOAD_MAX_BYTES", 10<<20)
+}
+
+// UploadAllowedTypes returns the accepted upload MIME types.
+func UploadAllowedTypes() []string {
+	return GetCSVEnv("UPLOAD_ALLOWED_TYPES", []string{
+		"image/jpeg",
+		"image/png",
+		"image/gif",
+		"image/webp",
+	})
 }
 
 // LoadOwnerSettings loads owner/admin settings from the environment.

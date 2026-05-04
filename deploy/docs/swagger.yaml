@@ -69,12 +69,30 @@ definitions:
       watchers_count:
         type: integer
     type: object
+  models.AuthCredentials:
+    properties:
+      account:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  models.AuthResponse:
+    properties:
+      is_owner:
+        type: boolean
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
   models.Blog:
     properties:
       category_id:
         type: integer
       category_name:
-        description: 查询时填充
+        description: Parent category name, populated on reads.
         type: string
       created_at:
         $ref: '#/definitions/models.CustomTime'
@@ -92,65 +110,65 @@ definitions:
   models.Category:
     properties:
       children:
-        description: 子分类列表，查询时填充
+        description: Nested child categories, populated on reads.
         items:
           $ref: '#/definitions/models.Category'
         type: array
       created_at:
         $ref: '#/definitions/models.CustomTime'
       description:
-        description: 分类描述
+        description: Optional summary text.
         type: string
       id:
         type: integer
       img_url:
-        description: 分类封面图片URL
+        description: Cover image URL.
         type: string
       name:
         type: string
       parent_id:
-        description: nil表示顶级分类
+        description: Nil means a top-level category.
         type: integer
       sort_order:
         type: integer
       tags:
-        description: 分类标签
+        description: Optional tag list.
         items:
           type: string
         type: array
       type:
-        description: folder=文件夹, article=文章
+        description: folder for navigation, article for content nodes.
         type: string
       updated_at:
         $ref: '#/definitions/models.CustomTime'
       url:
-        description: 文章类型时存储文章地址
+        description: Article URL when Type is article.
         type: string
     type: object
   models.CreateCommentRequest:
     properties:
       article_id:
-        description: 文章ID
+        description: Article node ID.
         example: 11
         type: integer
       avatar_url:
-        description: 评论者头像（可选）
+        description: Optional avatar URL.
         example: https://example.com/avatar.jpg
         type: string
       content:
-        description: 评论内容
-        example: 写得很好！
+        description: Comment body.
+        example: Great article!
         type: string
       email:
-        description: 评论者邮箱（可选）
-        example: zhangsan@example.com
+        description: Optional contact email.
+        example: alex@example.com
         type: string
       nickname:
-        description: 评论者昵称
-        example: 张三
+        description: Comment author nickname.
+        example: Alex
         type: string
       parent_id:
-        description: 父评论ID（可选）
+        description: Optional parent comment ID.
         example: 101
         type: integer
     type: object
@@ -173,20 +191,37 @@ definitions:
     - content
     - entry_time
     type: object
+  models.RegisterRequest:
+    properties:
+      account:
+        type: string
+      birthday:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      nickname:
+        type: string
+      password:
+        type: string
+    type: object
   models.User:
     properties:
       account:
         type: string
       avatar_url:
-        description: GitHub 头像 URL
+        description: GitHub avatar URL.
         type: string
       birthday:
         type: string
+      email:
+        type: string
       github_id:
-        description: GitHub 用户 ID
+        description: GitHub user ID.
         type: integer
       github_url:
-        description: GitHub 主页 URL
+        description: GitHub profile URL.
         type: string
       id:
         type: integer
@@ -274,7 +309,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: '{"url": "..."}'
+          description: OK
           schema:
             additionalProperties:
               type: string
@@ -295,7 +330,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: '{"token": "...", "user": {...}}'
+          description: OK
           schema:
             additionalProperties: true
             type: object
@@ -326,7 +361,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: '{"token": "...", "user": {...}}'
+          description: OK
           schema:
             additionalProperties: true
             type: object
@@ -343,9 +378,10 @@ paths:
       - auth
   /auth/verify:
     get:
-      description: 验证 JWT Token 是否有效，返回当前用户信息
+      description: Validates the JWT token and returns the current authenticated user
+        information.
       parameters:
-      - description: Bearer Token
+      - description: Bearer token
         in: header
         name: Authorization
         required: true
@@ -354,7 +390,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Token 有效，返回用户信息
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/response.APIResponse'
@@ -363,29 +399,30 @@ paths:
                   type: object
               type: object
         "401":
-          description: Token 无效或已过期
+          description: Unauthorized
           schema:
             $ref: '#/definitions/response.APIResponse'
-      summary: 验证 Token 有效性
+      summary: Verify a JWT token
       tags:
       - auth
   /blogs:
     get:
-      description: 根据分类ID分页获取博客列表，支持关键词搜索。
+      description: Returns paginated article nodes from categories(type=article),
+        with optional parent category and keyword filters.
       parameters:
-      - description: 分类ID
+      - description: Parent category ID used to filter article nodes
         in: query
         name: category_id
         type: integer
-      - description: 搜索关键词
+      - description: Keyword matched against article titles
         in: query
         name: keyword
         type: string
-      - description: 页码，默认1
+      - description: Page number, default 1
         in: query
         name: page
         type: integer
-      - description: 每页数量，默认10
+      - description: Page size, default 10
         in: query
         name: pagesize
         type: integer
@@ -404,17 +441,18 @@ paths:
                   type: array
               type: object
         "500":
-          description: 查询失败
+          description: Query failed
           schema:
             $ref: '#/definitions/response.APIResponse'
-      summary: 获取博客列表
+      summary: List article-backed blogs
       tags:
       - blogs
   /blogs/{id}:
     get:
-      description: 根据ID获取单个博客的详细信息。
+      description: Returns a single article node from categories(type=article) while
+        preserving the blog response shape.
       parameters:
-      - description: 博客ID
+      - description: Article node ID
         in: path
         name: id
         required: true
@@ -432,18 +470,18 @@ paths:
                   $ref: '#/definitions/models.Blog'
               type: object
         "400":
-          description: 参数错误
+          description: Invalid ID
           schema:
             $ref: '#/definitions/response.APIResponse'
         "404":
-          description: 博客不存在
+          description: Blog not found
           schema:
             $ref: '#/definitions/response.APIResponse'
         "500":
-          description: 查询失败
+          description: Query failed
           schema:
             $ref: '#/definitions/response.APIResponse'
-      summary: 获取博客详情
+      summary: Get article-backed blog detail
       tags:
       - blogs
   /categories:
@@ -762,7 +800,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Record a guest entry event.
+      description: Records a guest entry event.
       parameters:
       - description: Guest record payload
         in: body
@@ -789,39 +827,38 @@ paths:
     post:
       consumes:
       - application/json
-      description: 验证用户身份并返回一个 JWT 令牌
+      description: Validates account or email credentials and returns a JWT plus user
+        information.
       parameters:
-      - description: 用户凭证
+      - description: Login credentials
         in: body
         name: credentials
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.AuthCredentials'
       produces:
       - application/json
       responses:
         "200":
-          description: '{"token": "..."}'
+          description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.AuthResponse'
         "400":
-          description: 无效的请求体
+          description: Invalid request body
           schema:
             type: string
         "401":
-          description: 未找到用户
+          description: Invalid credentials
           schema:
             type: string
-      summary: 用户登录
+      summary: Login with account or email
       tags:
       - auth
   /owner/today-visits:
     get:
-      description: Get today's visit count for the owner.
+      description: Returns today's visit count for the owner.
       parameters:
-      - description: Bearer Token
+      - description: Bearer token
         in: header
         name: Authorization
         required: true
@@ -845,13 +882,13 @@ paths:
       - owner
   /owner/visits:
     get:
-      description: Get visit stats for the owner over the last N days.
+      description: Returns visit stats for the owner over the last N days.
       parameters:
       - description: Number of days, default 7
         in: query
         name: days
         type: integer
-      - description: Bearer Token
+      - description: Bearer token
         in: header
         name: Authorization
         required: true
@@ -873,6 +910,37 @@ paths:
       summary: Get owner visit stats
       tags:
       - owner
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new public user account and immediately returns a JWT
+        for the new user.
+      parameters:
+      - description: Registration payload
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AuthResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "409":
+          description: Email or account already exists
+          schema:
+            type: string
+      summary: Register a public user
+      tags:
+      - auth
   /upload:
     post:
       consumes:
@@ -908,7 +976,7 @@ paths:
       - upload
   /users:
     get:
-      description: 获取所有已注册用户的列表。
+      description: Returns all registered users.
       produces:
       - application/json
       responses:
@@ -919,18 +987,18 @@ paths:
               $ref: '#/definitions/models.User'
             type: array
         "500":
-          description: 查询失败或数据解析失败
+          description: Query failed
           schema:
             type: string
-      summary: 获取所有用户
+      summary: List users
       tags:
       - users
     post:
       consumes:
       - application/json
-      description: 在系统中创建一个新用户。此操作需要身份验证。
+      description: Creates a new user record. This endpoint requires owner authentication.
       parameters:
-      - description: 要添加的用户
+      - description: User payload
         in: body
         name: user
         required: true
@@ -944,21 +1012,21 @@ paths:
           schema:
             $ref: '#/definitions/models.User'
         "400":
-          description: 无效的请求体
+          description: Invalid request body
           schema:
             type: string
         "500":
-          description: 准备或执行语句失败
+          description: Create failed
           schema:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: 添加一个新用户
+      summary: Add a user
       tags:
       - users
   /visits:
     get:
-      description: Get paginated visit logs.
+      description: Returns paginated visit logs.
       produces:
       - application/json
       responses:
@@ -979,7 +1047,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Record a user visit.
+      description: Records a user visit.
       parameters:
       - description: Visit payload
         in: body
