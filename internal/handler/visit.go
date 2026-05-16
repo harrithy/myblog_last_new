@@ -82,7 +82,15 @@ func (h *VisitHandler) GetVisitLogs(w http.ResponseWriter, r *http.Request) {
 		page = 1
 	}
 
-	pageSize, err := strconv.Atoi(r.URL.Query().Get("pagesize"))
+	pageSizeValue := r.URL.Query().Get("pagesize")
+	if pageSizeValue == "" {
+		pageSizeValue = r.URL.Query().Get("pageSize")
+	}
+	if pageSizeValue == "" {
+		pageSizeValue = r.URL.Query().Get("page_size")
+	}
+
+	pageSize, err := strconv.Atoi(pageSizeValue)
 	if err != nil || pageSize < 1 {
 		pageSize = 10
 	}

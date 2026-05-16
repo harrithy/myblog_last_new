@@ -16,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestAddUser(t *testing.T) {
@@ -231,6 +232,103 @@ func TestLoginWithAccountOrEmail(t *testing.T) {
 				t.Fatalf("login response did not include a token: %#v", data)
 			}
 		})
+	}
+}
+
+func TestCreateCommentWithoutAuth(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	clearContentTables(t, db)
+
+	articleResult, err := db.Exec(`
+		INSERT INTO categories (name, type, description, url, sort_order)
+		VALUES (?, ?, ?, ?, 1)
+	`, "Public Article", models.CategoryTypeArticle, "A public article", "/posts/public-article")
+	if err != nil {
+		t.Fatalf("failed to create article category: %v", err)
+	}
+
+	articleID64, err := articleResult.LastInsertId()
+	if err != nil {
+		t.Fatalf("failed to read article id: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	router.RegisterRoutes(mux, db)
+
+	reqBody, _ := json.Marshal(models.CreateCommentRequest{
+		ArticleID: int(articleID64),
+		Nickname:  "Guest",
+		Content:   "Nice article!",
+	})
+	req, _ := http.NewRequest(http.MethodPost, "/comments", bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("comment create returned wrong status: got %d want %d body=%s", rr.Code, http.StatusOK, rr.Body.String())
+	}
+}
+
+func TestOwnerVisitStatsWithoutAuth(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	if _, err := db.Exec("DELETE FROM owner_visit_logs"); err != nil {
+		t.Fatalf("failed to clear owner_visit_logs table: %v", err)
+	}
+
+	today := time.Now().Format("2006-01-02")
+	if _, err := db.Exec(`
+		INSERT INTO owner_visit_logs (visit_date, visit_count)
+		VALUES (?, ?)
+	`, today, 3); err != nil {
+		t.Fatalf("failed to seed owner_visit_logs: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	router.RegisterRoutes(mux, db)
+
+	req, _ := http.NewRequest(http.MethodGet, "/owner/visits?days=7", nil)
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("owner visits returned wrong status: got %d want %d body=%s", rr.Code, http.StatusOK, rr.Body.String())
+	}
+
+	todayReq, _ := http.NewRequest(http.MethodGet, "/owner/today-visits", nil)
+	todayRR := httptest.NewRecorder()
+	mux.ServeHTTP(todayRR, todayReq)
+
+	if todayRR.Code != http.StatusOK {
+		t.Fatalf("owner today visits returned wrong status: got %d want %d body=%s", todayRR.Code, http.StatusOK, todayRR.Body.String())
+	}
+}
+
+func TestAIChatRouteWithoutAuth(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	t.Setenv("DEEPSEEK_API_KEY", "")
+
+	mux := http.NewServeMux()
+	router.RegisterRoutes(mux, db)
+
+	reqBody, _ := json.Marshal(map[string]string{
+		"message": "hello",
+	})
+	req, _ := http.NewRequest(http.MethodPost, "/ai/chat", bytes.NewBuffer(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code == http.StatusUnauthorized {
+		t.Fatalf("ai chat should not require auth, got status %d body=%s", rr.Code, rr.Body.String())
 	}
 }
 

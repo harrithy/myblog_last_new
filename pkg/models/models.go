@@ -29,6 +29,7 @@ type User struct {
 	GitHubID  int64  `json:"github_id,omitempty"`  // GitHub user ID.
 	AvatarURL string `json:"avatar_url,omitempty"` // GitHub avatar URL.
 	GitHubURL string `json:"github_url,omitempty"` // GitHub profile URL.
+	Bio       string `json:"bio,omitempty"`        // Optional profile bio.
 }
 
 // AuthCredentials defines the request body for password login.

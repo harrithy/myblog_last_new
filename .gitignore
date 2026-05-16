@@ -12,6 +12,7 @@ start_prod.bat
 .idea/
 *.swp
 *.swo
+.gocache/
 
 # 日志
 *.log

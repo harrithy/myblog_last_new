@@ -122,6 +122,12 @@ func registerDualRoutes(
 			http.MethodPost: middleware.OwnerOnly(userHandler.AddUser),
 		})
 
+		router.HandleMethodsWithAuth(prefix+"/users/", routeHandlers{
+			http.MethodGet:    userHandler.GetUserByID,
+			http.MethodPut:    userHandler.UpdateUser,
+			http.MethodDelete: userHandler.DeleteUser,
+		})
+
 		router.HandleMethods(prefix+"/blogs", routeHandlers{
 			http.MethodGet: blogHandler.GetBlogs,
 		})
@@ -139,11 +145,11 @@ func registerDualRoutes(
 			http.MethodPost: visitHandler.LogGuestRecord,
 		})
 
-		router.HandleMethodsWithOwnerAuth(prefix+"/owner/visits", routeHandlers{
+		router.HandleMethods(prefix+"/owner/visits", routeHandlers{
 			http.MethodGet: visitHandler.GetOwnerVisitStats,
 		})
 
-		router.HandleMethodsWithOwnerAuth(prefix+"/owner/today-visits", routeHandlers{
+		router.HandleMethods(prefix+"/owner/today-visits", routeHandlers{
 			http.MethodGet: visitHandler.GetOwnerTodayVisits,
 		})
 
@@ -164,7 +170,7 @@ func registerDualRoutes(
 
 		router.HandleMethods(prefix+"/comments", routeHandlers{
 			http.MethodGet:  commentHandler.GetComments,
-			http.MethodPost: middleware.Auth(commentHandler.CreateComment),
+			http.MethodPost: commentHandler.CreateComment,
 		})
 
 		router.HandleMethods(prefix+"/comments/", routeHandlers{
@@ -191,7 +197,7 @@ func registerDualRoutes(
 			http.MethodPost: uploadHandler.ProxyUpload,
 		})
 
-		router.HandleMethodsWithOwnerAuth(prefix+"/ai/chat", routeHandlers{
+		router.HandleMethods(prefix+"/ai/chat", routeHandlers{
 			http.MethodPost: aiHandler.Chat,
 		})
 	}

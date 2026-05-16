@@ -4,7 +4,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
+
+var loadDotEnvOnce sync.Once
 
 // OwnerSettings stores owner/admin identity and login settings.
 type OwnerSettings struct {
@@ -18,6 +21,8 @@ type OwnerSettings struct {
 
 // GetEnv returns an environment variable or a default value when missing.
 func GetEnv(key, defaultValue string) string {
+	ensureDotEnvLoaded()
+
 	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
 		return value
 	}
@@ -59,6 +64,50 @@ func GetInt64Env(key string, defaultValue int64) int64 {
 	}
 
 	return parsed
+}
+
+func ensureDotEnvLoaded() {
+	loadDotEnvOnce.Do(func() {
+		content, err := os.ReadFile(".env")
+		if err != nil {
+			return
+		}
+
+		for _, rawLine := range strings.Split(string(content), "\n") {
+			line := strings.TrimSpace(strings.TrimPrefix(rawLine, "\ufeff"))
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+
+			if strings.HasPrefix(line, "export ") {
+				line = strings.TrimSpace(strings.TrimPrefix(line, "export "))
+			}
+
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) != 2 {
+				continue
+			}
+
+			key := strings.TrimSpace(parts[0])
+			if key == "" {
+				continue
+			}
+
+			if _, exists := os.LookupEnv(key); exists {
+				continue
+			}
+
+			value := strings.TrimSpace(parts[1])
+			if len(value) >= 2 {
+				if (strings.HasPrefix(value, "\"") && strings.HasSuffix(value, "\"")) ||
+					(strings.HasPrefix(value, "'") && strings.HasSuffix(value, "'")) {
+					value = value[1 : len(value)-1]
+				}
+			}
+
+			_ = os.Setenv(key, value)
+		}
+	})
 }
 
 // JWTSecret returns the signing secret used for JWT tokens.

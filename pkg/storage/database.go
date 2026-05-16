@@ -20,6 +20,7 @@ func InitDB(db *sql.DB) error {
 			birthday DATE,
 			github_id BIGINT DEFAULT NULL,
 			avatar_url VARCHAR(500) DEFAULT NULL,
+			bio TEXT DEFAULT NULL,
 			github_url VARCHAR(500) DEFAULT NULL,
 			account VARCHAR(255) DEFAULT NULL,
 			password VARCHAR(255) DEFAULT NULL,
@@ -35,6 +36,9 @@ func InitDB(db *sql.DB) error {
 		return err
 	}
 	if err := ensureColumnExists(db, "users", "avatar_url", "ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) DEFAULT NULL"); err != nil {
+		return err
+	}
+	if err := ensureColumnExists(db, "users", "bio", "ALTER TABLE users ADD COLUMN bio TEXT DEFAULT NULL AFTER avatar_url"); err != nil {
 		return err
 	}
 	if err := ensureColumnExists(db, "users", "github_url", "ALTER TABLE users ADD COLUMN github_url VARCHAR(500) DEFAULT NULL"); err != nil {
