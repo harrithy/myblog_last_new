@@ -213,6 +213,9 @@ definitions:
       avatar_url:
         description: GitHub avatar URL.
         type: string
+      bio:
+        description: Optional profile bio.
+        type: string
       birthday:
         type: string
       email:
@@ -1073,4 +1076,39 @@ paths:
       summary: Create visit log
       tags:
       - visits
+  /ws:
+    get:
+      description: |-
+        将 HTTP 连接升级为 WebSocket 长连接，支持 JWT 认证（URL 参数 ?token=xxx 或 Authorization Header）。
+        认证用户可订阅频道接收实时推送，匿名用户以访客身份连接。
+        客户端连接后应发送 subscribe 消息订阅频道：
+        - {"type":"subscribe","channel":"global"} 全局通知
+        - {"type":"subscribe","channel":"comments:<id>"} 文章评论
+        - {"type":"subscribe","channel":"visits"} 实时访客
+      parameters:
+      - description: JWT token（可选，用于认证连接）
+        in: query
+        name: token
+        type: string
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols - WebSocket 升级成功
+      summary: WebSocket 连接端点
+      tags:
+      - websocket
+  /ws/online:
+    get:
+      description: 返回当前活跃的 WebSocket 连接数量，用于前端展示实时在线人数
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 在线人数统计
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      summary: 查询 WebSocket 在线人数
+      tags:
+      - websocket
 swagger: "2.0"

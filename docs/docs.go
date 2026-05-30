@@ -1304,6 +1304,51 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/ws": {
+            "get": {
+                "description": "将 HTTP 连接升级为 WebSocket 长连接，支持 JWT 认证（URL 参数 ?token=xxx 或 Authorization Header）。\n认证用户可订阅频道接收实时推送，匿名用户以访客身份连接。\n客户端连接后应发送 subscribe 消息订阅频道：\n- {\"type\":\"subscribe\",\"channel\":\"global\"} 全局通知\n- {\"type\":\"subscribe\",\"channel\":\"comments:\u003cid\u003e\"} 文章评论\n- {\"type\":\"subscribe\",\"channel\":\"visits\"} 实时访客",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "websocket"
+                ],
+                "summary": "WebSocket 连接端点",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT token（可选，用于认证连接）",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols - WebSocket 升级成功"
+                    }
+                }
+            }
+        },
+        "/ws/online": {
+            "get": {
+                "description": "返回当前活跃的 WebSocket 连接数量，用于前端展示实时在线人数",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "websocket"
+                ],
+                "summary": "查询 WebSocket 在线人数",
+                "responses": {
+                    "200": {
+                        "description": "在线人数统计",
+                        "schema": {
+                            "$ref": "#/definitions/response.APIResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1617,6 +1662,10 @@ const docTemplate = `{
                 },
                 "avatar_url": {
                     "description": "GitHub avatar URL.",
+                    "type": "string"
+                },
+                "bio": {
+                    "description": "Optional profile bio.",
                     "type": "string"
                 },
                 "birthday": {

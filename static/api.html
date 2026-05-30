@@ -781,19 +781,32 @@
                     { name: 'github_url', type: 'string', desc: 'GitHub主页' }
                 ]
             },
-            '/blogs': {
-                description: '?? categories(type=article) ???????????????????????????????',
-                fields: [
-                    { name: 'id', type: 'number', desc: '????ID' },
-                    { name: 'title', type: 'string', desc: '????' },
-                    { name: 'url', type: 'string', desc: '??URL' },
-                    { name: 'category_id', type: 'number', desc: '???ID' },
-                    { name: 'category_name', type: 'string', desc: '?????' },
-                    { name: 'description', type: 'string', desc: '????' },
-                    { name: 'created_at', type: 'string', desc: '????' },
-                    { name: 'updated_at', type: 'string', desc: '????' }
-                ]
-            },
+            '/blogs': {
+
+                description: '?? categories(type=article) ???????????????????????????????',
+
+                fields: [
+
+                    { name: 'id', type: 'number', desc: '????ID' },
+
+                    { name: 'title', type: 'string', desc: '????' },
+
+                    { name: 'url', type: 'string', desc: '??URL' },
+
+                    { name: 'category_id', type: 'number', desc: '???ID' },
+
+                    { name: 'category_name', type: 'string', desc: '?????' },
+
+                    { name: 'description', type: 'string', desc: '????' },
+
+                    { name: 'created_at', type: 'string', desc: '????' },
+
+                    { name: 'updated_at', type: 'string', desc: '????' }
+
+                ]
+
+            },
+
             '/categories': {
                 description: '获取分类列表，支持树形结构',
                 fields: [
@@ -919,6 +932,20 @@
                 fields: [
                     { name: 'url', type: 'string', desc: '图片URL' },
                     { name: 'filename', type: 'string', desc: '文件名' }
+                ]
+            },
+            '/ws': {
+                description: 'WebSocket 连接端点 — 将 HTTP 升级为 WebSocket 长连接，支持 JWT 认证和频道订阅',
+                fields: [
+                    { name: 'type', type: 'string', desc: '消息类型：subscribe/unsubscribe/ping/broadcast/error/info' },
+                    { name: 'channel', type: 'string', desc: '频道名：global(全局) / comments:<id>(文章评论) / visits(实时访客)' },
+                    { name: 'data', type: 'object', desc: '消息载荷，broadcast 时携带业务数据' }
+                ]
+            },
+            '/ws/online': {
+                description: '查询当前 WebSocket 在线连接数',
+                fields: [
+                    { name: 'online_count', type: 'number', desc: '当前活跃的 WebSocket 连接数量' }
                 ]
             }
         };

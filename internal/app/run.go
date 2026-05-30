@@ -42,6 +42,8 @@ func Run() error {
 	fmt.Printf("Swagger UI: http://localhost:%s/swagger/index.html\n", port)
 	fmt.Printf("Category admin page: http://localhost:%s/static/category.html\n", port)
 	fmt.Printf("Static API page: http://localhost:%s/static/api.html\n", port)
+	fmt.Printf("WebSocket endpoint: ws://localhost:%s/ws\n", port)
+	fmt.Printf("WebSocket online count: http://localhost:%s/ws/online\n", port)
 
 	server := &http.Server{
 		Addr:              ":" + port,

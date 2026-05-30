@@ -88,8 +88,9 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	githubAuthHandler := handler.NewGitHubAuthHandler(userRepo, ownerRepo)
 	uploadHandler := handler.NewUploadHandler()
 	aiHandler := handler.NewAIHandler()
+	webSocketHandler := handler.NewWebSocketHandler(userRepo)
 
-	registerDualRoutes(router, authHandler, userHandler, blogHandler, categoryHandler, visitHandler, commentHandler, githubAuthHandler, uploadHandler, aiHandler)
+	registerDualRoutes(router, authHandler, userHandler, blogHandler, categoryHandler, visitHandler, commentHandler, githubAuthHandler, uploadHandler, aiHandler, webSocketHandler)
 }
 
 func registerDualRoutes(
@@ -103,6 +104,7 @@ func registerDualRoutes(
 	githubAuthHandler *handler.GitHubAuthHandler,
 	uploadHandler *handler.UploadHandler,
 	aiHandler *handler.AIHandler,
+	webSocketHandler *handler.WebSocketHandler,
 ) {
 	for _, prefix := range []string{"", "/api"} {
 		router.HandleMethods(prefix+"/register", routeHandlers{
@@ -200,5 +202,11 @@ func registerDualRoutes(
 		router.HandleMethods(prefix+"/ai/chat", routeHandlers{
 			http.MethodPost: aiHandler.Chat,
 		})
+
+		// WebSocket 连接端点 — 客户端通过 ws://host/ws?token=xxx 连接
+		router.Handle(prefix+"/ws", webSocketHandler.HandleConnection)
+
+		// 在线人数查询 — HTTP API，方便前端轮询或初始化时获取在线数
+		router.Handle(prefix+"/ws/online", webSocketHandler.GetOnlineCount)
 	}
 }

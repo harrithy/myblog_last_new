@@ -1,6 +1,6 @@
 # API 接口文档
 
-> 最后更新时间：2025-01-06
+> 最后更新时间：2025-05-30
 
 ## 目录
 
@@ -14,6 +14,7 @@
 - [访客接口](#访客接口)
 - [博主统计接口](#博主统计接口)
 - [GitHub OAuth 接口](#github-oauth-接口)
+- [WebSocket 接口](#websocket-接口)
 - [接口规范说明](#接口规范说明)
 
 ---
@@ -688,6 +689,174 @@ Authorization: Bearer <token>
 
 ---
 
+## WebSocket 接口
+
+WebSocket 用于实现实时双向通信，支持评论推送、全局通知、在线人数统计等场景。基于 **gorilla/websocket** 实现，采用 Hub + Client 模式管理连接。
+
+### 连接端点
+
+**WS** `/ws` 或 `/api/ws`
+
+将 HTTP 连接升级为 WebSocket 长连接。
+
+**认证方式：**
+
+| 方式 | 说明 | 示例 |
+|------|------|------|
+| URL 参数 | 适合浏览器端（无法自定义 Header） | `ws://host/ws?token=xxx` |
+| Authorization Header | 适合原生 App | `Authorization: Bearer xxx` |
+| 匿名连接 | 无需认证，作为访客连接 | `ws://host/ws` |
+
+**WebSocket 子协议：** 无
+
+### 消息协议
+
+客户端与服务端通信采用统一 JSON 格式：
+
+```json
+{
+  "type": "subscribe|unsubscribe|broadcast|ping|pong|error|info",
+  "channel": "频道名称",
+  "data": {}
+}
+```
+
+### 客户端 → 服务端
+
+#### 订阅频道
+
+```json
+{"type":"subscribe","channel":"comments:123"}
+```
+
+| 字段 | 类型 | 必传 | 说明 |
+|------|------|------|------|
+| type | string | 是 | 固定值 `subscribe` |
+| channel | string | 是 | 频道名称，见下方频道列表 |
+
+**成功回复：**
+```json
+{"type":"info","channel":"comments:123","data":"订阅成功"}
+```
+
+#### 取消订阅
+
+```json
+{"type":"unsubscribe","channel":"comments:123"}
+```
+
+**成功回复：**
+```json
+{"type":"info","channel":"comments:123","data":"已取消订阅"}
+```
+
+#### 心跳检测
+
+```json
+{"type":"ping"}
+```
+
+**回复：**
+```json
+{"type":"pong"}
+```
+
+> 服务端会每 54 秒自动发送 WebSocket Ping 帧保活，客户端无需手动发送心跳。
+
+### 可订阅频道
+
+| 频道 | 说明 | 适用场景 |
+|------|------|----------|
+| `global` | 全局广播 | 新文章发布、系统公告 |
+| `comments:<id>` | 指定文章评论 | 文章 ID=123 → `comments:123` |
+| `visits` | 实时访客统计 | 在线人数/访问动态 |
+
+### 服务端广播消息格式
+
+```json
+{
+  "type": "broadcast",
+  "channel": "comments:123",
+  "data": {
+    "id": 1,
+    "article_id": 123,
+    "nickname": "新评论者",
+    "content": "实时评论内容",
+    "created_at": "2025-05-30 12:00:00"
+  }
+}
+```
+
+---
+
+### 在线人数查询
+
+**GET** `/ws/online` 或 `/api/ws/online`
+
+查询当前 WebSocket 在线连接数（HTTP 接口）。
+
+**成功响应：**
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "online_count": 3
+  }
+}
+```
+
+---
+
+### 前端接入示例
+
+```javascript
+// 1. 建立连接（匿名）
+const ws = new WebSocket("ws://localhost:8080/ws");
+
+// 带认证的连接
+const token = "YOUR_JWT_TOKEN";
+const authWs = new WebSocket(`ws://localhost:8080/ws?token=${token}`);
+
+// 2. 连接成功后订阅频道
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: "subscribe", channel: "comments:123" }));
+  ws.send(JSON.stringify({ type: "subscribe", channel: "global" }));
+};
+
+// 3. 接收消息
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+  if (msg.type === "broadcast") {
+    console.log(`[${msg.channel}]`, msg.data);
+  }
+};
+
+// 4. 心跳（可选，服务端自带 Ping/Pong 保活）
+setInterval(() => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "ping" }));
+  }
+}, 30000);
+```
+
+### 服务端推送示例
+
+在业务 handler 中调用：
+
+```go
+import ws "myblog_last_new/pkg/websocket"
+
+// 有新评论时推送给订阅该文章频道的所有客户端
+ws.BroadcastToChannel("comments:123", newComment)
+
+// 全局广播通知
+ws.BroadcastJSON("global", map[string]string{"msg": "新文章《Go WebSocket 实战》发布了!"})
+```
+
+---
+
 ## 接口规范说明
 
 ### 1. 基本原则
@@ -1073,6 +1242,8 @@ func Login(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 | GET | `/auth/github` | 获取GitHub登录URL | 否 |
 | GET | `/auth/github/callback` | GitHub OAuth回调 | 否 |
 | POST | `/auth/github/login` | GitHub授权码登录 | 否 |
+| GET | `/ws` | WebSocket 连接端点 | 可选 |
+| GET | `/ws/online` | WebSocket 在线人数 | 否 |
 
 ---
 
